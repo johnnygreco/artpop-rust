@@ -12,9 +12,9 @@ members = [
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.88"
-license = "MIT"
+license = "Apache-2.0"
 authors = ["artpop-rust contributors"]
-repository = "https://github.com/ArtificialStellarPopulations/ArtPop"
+repository = "https://github.com/johnnygreco/artpop-rust"
 
 [workspace.dependencies]
 artpop-core = { path = "crates/artpop-core" }

@@ -77,4 +77,6 @@ validation/            Python reference harness and benchmarks (development only
 analysis/ tools/       analysis probes and the bundled-data converter (development only)
 ```
 
-ArtPop is MIT-licensed; its copyright notice ([LICENSE-ArtPop](LICENSE-ArtPop)) applies to the converted metadata and fixtures. MIST model data are distributed by the MIST project under its own terms and are not bundled.
+## License
+
+artpop-rust is licensed under the [Apache License 2.0](LICENSE). The bundled filter metadata, zero points, and test isochrone are converted from ArtPop, which is MIT-licensed; ArtPop's copyright notice ([LICENSE-ArtPop](LICENSE-ArtPop)) applies to those files. MIST model data are distributed by the MIST project under its own terms and are not bundled.
