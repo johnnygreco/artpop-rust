@@ -1,0 +1,18 @@
+[package]
+name = "artpop-core"
+description = "Scientific core of artpop-rust: IMFs, isochrones, populations, spatial sampling, histograms, PSFs, convolution, and detector models"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+rand_chacha = "0.10"
+rand_core = "0.10"
+sha2 = "0.11"
+rustfft = "6.4"
+libm = "0.2"
+rayon = "1.12"
+schemars = "1.2"

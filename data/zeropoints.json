@@ -1,0 +1,1386 @@
+{
+ "schema_version": "1",
+ "columns": "filter native_system mag(Vega/ST) mag(Vega/AB)",
+ "zeropoints": [
+  {
+   "filter": "CFHT_u",
+   "native_system": "AB",
+   "vega_to_st": -0.424539,
+   "vega_to_ab": 0.367125
+  },
+  {
+   "filter": "CFHT_g",
+   "native_system": "AB",
+   "vega_to_st": -0.357651,
+   "vega_to_ab": -0.09181
+  },
+  {
+   "filter": "CFHT_r",
+   "native_system": "AB",
+   "vega_to_st": 0.4409,
+   "vega_to_ab": 0.154376
+  },
+  {
+   "filter": "CFHT_i_new",
+   "native_system": "AB",
+   "vega_to_st": 1.055841,
+   "vega_to_ab": 0.36167
+  },
+  {
+   "filter": "CFHT_i_old",
+   "native_system": "AB",
+   "vega_to_st": 1.119709,
+   "vega_to_ab": 0.385491
+  },
+  {
+   "filter": "CFHT_z",
+   "native_system": "AB",
+   "vega_to_st": 1.55898,
+   "vega_to_ab": 0.513837
+  },
+  {
+   "filter": "DECam_u",
+   "native_system": "AB",
+   "vega_to_st": -0.420184,
+   "vega_to_ab": 0.340835
+  },
+  {
+   "filter": "DECam_g",
+   "native_system": "AB",
+   "vega_to_st": -0.366396,
+   "vega_to_ab": -0.089596
+  },
+  {
+   "filter": "DECam_r",
+   "native_system": "AB",
+   "vega_to_st": 0.529093,
+   "vega_to_ab": 0.182467
+  },
+  {
+   "filter": "DECam_i",
+   "native_system": "AB",
+   "vega_to_st": 1.176206,
+   "vega_to_ab": 0.405898
+  },
+  {
+   "filter": "DECam_z",
+   "native_system": "AB",
+   "vega_to_st": 1.634043,
+   "vega_to_ab": 0.516983
+  },
+  {
+   "filter": "DECam_Y",
+   "native_system": "AB",
+   "vega_to_st": 1.84314,
+   "vega_to_ab": 0.564316
+  },
+  {
+   "filter": "GALEX_FUV",
+   "native_system": "AB",
+   "vega_to_st": -0.631684,
+   "vega_to_ab": 2.123122
+  },
+  {
+   "filter": "GALEX_NUV",
+   "native_system": "AB",
+   "vega_to_st": -0.216471,
+   "vega_to_ab": 1.665903
+  },
+  {
+   "filter": "ACS_HRC_F220W",
+   "native_system": "Vega",
+   "vega_to_st": -0.242516,
+   "vega_to_ab": 1.683496
+  },
+  {
+   "filter": "ACS_HRC_F250W",
+   "native_system": "Vega",
+   "vega_to_st": -0.026944,
+   "vega_to_ab": 1.495635
+  },
+  {
+   "filter": "ACS_HRC_F330W",
+   "native_system": "Vega",
+   "vega_to_st": 0.123693,
+   "vega_to_ab": 1.182286
+  },
+  {
+   "filter": "ACS_HRC_F344N",
+   "native_system": "Vega",
+   "vega_to_st": 0.137867,
+   "vega_to_ab": 1.151053
+  },
+  {
+   "filter": "ACS_HRC_F435W",
+   "native_system": "Vega",
+   "vega_to_st": -0.605858,
+   "vega_to_ab": -0.086591
+  },
+  {
+   "filter": "ACS_HRC_F475W",
+   "native_system": "Vega",
+   "vega_to_st": -0.390985,
+   "vega_to_ab": -0.093936
+  },
+  {
+   "filter": "ACS_HRC_F502N",
+   "native_system": "Vega",
+   "vega_to_st": -0.27089,
+   "vega_to_ab": -0.083596
+  },
+  {
+   "filter": "ACS_HRC_F550M",
+   "native_system": "Vega",
+   "vega_to_st": 0.065311,
+   "vega_to_ab": 0.024283
+  },
+  {
+   "filter": "ACS_HRC_F555W",
+   "native_system": "Vega",
+   "vega_to_st": -0.055068,
+   "vega_to_ab": -0.007055
+  },
+  {
+   "filter": "ACS_HRC_F606W",
+   "native_system": "Vega",
+   "vega_to_st": 0.238048,
+   "vega_to_ab": 0.080791
+  },
+  {
+   "filter": "ACS_HRC_F625W",
+   "native_system": "Vega",
+   "vega_to_st": 0.46304,
+   "vega_to_ab": 0.160116
+  },
+  {
+   "filter": "ACS_HRC_F658N",
+   "native_system": "Vega",
+   "vega_to_st": 0.776888,
+   "vega_to_ab": 0.376572
+  },
+  {
+   "filter": "ACS_HRC_F660N",
+   "native_system": "Vega",
+   "vega_to_st": 0.684204,
+   "vega_to_ab": 0.278863
+  },
+  {
+   "filter": "ACS_HRC_F775W",
+   "native_system": "Vega",
+   "vega_to_st": 1.113686,
+   "vega_to_ab": 0.383335
+  },
+  {
+   "filter": "ACS_HRC_F814W",
+   "native_system": "Vega",
+   "vega_to_st": 1.279988,
+   "vega_to_ab": 0.425512
+  },
+  {
+   "filter": "ACS_HRC_F850LP",
+   "native_system": "Vega",
+   "vega_to_st": 1.635112,
+   "vega_to_ab": 0.521485
+  },
+  {
+   "filter": "ACS_HRC_F892N",
+   "native_system": "Vega",
+   "vega_to_st": 1.546341,
+   "vega_to_ab": 0.487505
+  },
+  {
+   "filter": "ACS_WFC_F435W",
+   "native_system": "Vega",
+   "vega_to_st": -0.612699,
+   "vega_to_ab": -0.101679
+  },
+  {
+   "filter": "ACS_WFC_F475W",
+   "native_system": "Vega",
+   "vega_to_st": -0.408606,
+   "vega_to_ab": -0.097875
+  },
+  {
+   "filter": "ACS_WFC_F502N",
+   "native_system": "Vega",
+   "vega_to_st": -0.270926,
+   "vega_to_ab": -0.083681
+  },
+  {
+   "filter": "ACS_WFC_F550M",
+   "native_system": "Vega",
+   "vega_to_st": 0.066147,
+   "vega_to_ab": 0.024511
+  },
+  {
+   "filter": "ACS_WFC_F555W",
+   "native_system": "Vega",
+   "vega_to_st": -0.052478,
+   "vega_to_ab": -0.006312
+  },
+  {
+   "filter": "ACS_WFC_F606W",
+   "native_system": "Vega",
+   "vega_to_st": 0.255801,
+   "vega_to_ab": 0.0865
+  },
+  {
+   "filter": "ACS_WFC_F625W",
+   "native_system": "Vega",
+   "vega_to_st": 0.471701,
+   "vega_to_ab": 0.163258
+  },
+  {
+   "filter": "ACS_WFC_F658N",
+   "native_system": "Vega",
+   "vega_to_st": 0.776774,
+   "vega_to_ab": 0.376382
+  },
+  {
+   "filter": "ACS_WFC_F660N",
+   "native_system": "Vega",
+   "vega_to_st": 0.684181,
+   "vega_to_ab": 0.27871
+  },
+  {
+   "filter": "ACS_WFC_F775W",
+   "native_system": "Vega",
+   "vega_to_st": 1.126465,
+   "vega_to_ab": 0.387955
+  },
+  {
+   "filter": "ACS_WFC_F814W",
+   "native_system": "Vega",
+   "vega_to_st": 1.263223,
+   "vega_to_ab": 0.423663
+  },
+  {
+   "filter": "ACS_WFC_F850LP",
+   "native_system": "Vega",
+   "vega_to_st": 1.607517,
+   "vega_to_ab": 0.519586
+  },
+  {
+   "filter": "ACS_WFC_F892N",
+   "native_system": "Vega",
+   "vega_to_st": 1.547434,
+   "vega_to_ab": 0.488893
+  },
+  {
+   "filter": "WFC3_UVIS_F200LP",
+   "native_system": "Vega",
+   "vega_to_st": 0.240419,
+   "vega_to_ab": 0.451333
+  },
+  {
+   "filter": "WFC3_UVIS_F218W",
+   "native_system": "Vega",
+   "vega_to_st": -0.260883,
+   "vega_to_ab": 1.691151
+  },
+  {
+   "filter": "WFC3_UVIS_F225W",
+   "native_system": "Vega",
+   "vega_to_st": -0.155178,
+   "vega_to_ab": 1.660654
+  },
+  {
+   "filter": "WFC3_UVIS_F275W",
+   "native_system": "Vega",
+   "vega_to_st": -0.028405,
+   "vega_to_ab": 1.498659
+  },
+  {
+   "filter": "WFC3_UVIS_F280N",
+   "native_system": "Vega",
+   "vega_to_st": 0.002335,
+   "vega_to_ab": 1.43277
+  },
+  {
+   "filter": "WFC3_UVIS_F300X",
+   "native_system": "Vega",
+   "vega_to_st": -0.018331,
+   "vega_to_ab": 1.420732
+  },
+  {
+   "filter": "WFC3_UVIS_F336W",
+   "native_system": "Vega",
+   "vega_to_st": 0.122049,
+   "vega_to_ab": 1.18576
+  },
+  {
+   "filter": "WFC3_UVIS_F343N",
+   "native_system": "Vega",
+   "vega_to_st": 0.143427,
+   "vega_to_ab": 1.155674
+  },
+  {
+   "filter": "WFC3_UVIS_F350LP",
+   "native_system": "Vega",
+   "vega_to_st": 0.303192,
+   "vega_to_ab": 0.156765
+  },
+  {
+   "filter": "WFC3_UVIS_F373N",
+   "native_system": "Vega",
+   "vega_to_st": 0.061798,
+   "vega_to_ab": 0.895206
+  },
+  {
+   "filter": "WFC3_UVIS_F390M",
+   "native_system": "Vega",
+   "vega_to_st": -0.638936,
+   "vega_to_ab": 0.099307
+  },
+  {
+   "filter": "WFC3_UVIS_F390W",
+   "native_system": "Vega",
+   "vega_to_st": -0.507217,
+   "vega_to_ab": 0.215957
+  },
+  {
+   "filter": "WFC3_UVIS_F395N",
+   "native_system": "Vega",
+   "vega_to_st": -0.727198,
+   "vega_to_ab": -0.020987
+  },
+  {
+   "filter": "WFC3_UVIS_F410M",
+   "native_system": "Vega",
+   "vega_to_st": -0.779296,
+   "vega_to_ab": -0.155917
+  },
+  {
+   "filter": "WFC3_UVIS_F438W",
+   "native_system": "Vega",
+   "vega_to_st": -0.663431,
+   "vega_to_ab": -0.152048
+  },
+  {
+   "filter": "WFC3_UVIS_F467M",
+   "native_system": "Vega",
+   "vega_to_st": -0.494367,
+   "vega_to_ab": -0.154733
+  },
+  {
+   "filter": "WFC3_UVIS_F469N",
+   "native_system": "Vega",
+   "vega_to_st": -0.494313,
+   "vega_to_ab": -0.157247
+  },
+  {
+   "filter": "WFC3_UVIS_F475W",
+   "native_system": "Vega",
+   "vega_to_st": -0.394892,
+   "vega_to_ab": -0.097092
+  },
+  {
+   "filter": "WFC3_UVIS_F475X",
+   "native_system": "Vega",
+   "vega_to_st": -0.272098,
+   "vega_to_ab": -0.049307
+  },
+  {
+   "filter": "WFC3_UVIS_F487N",
+   "native_system": "Vega",
+   "vega_to_st": -0.07191,
+   "vega_to_ab": 0.181882
+  },
+  {
+   "filter": "WFC3_UVIS_F502N",
+   "native_system": "Vega",
+   "vega_to_st": -0.279955,
+   "vega_to_ab": -0.086936
+  },
+  {
+   "filter": "WFC3_UVIS_F547M",
+   "native_system": "Vega",
+   "vega_to_st": -0.011458,
+   "vega_to_ab": -0.000371
+  },
+  {
+   "filter": "WFC3_UVIS_F555W",
+   "native_system": "Vega",
+   "vega_to_st": -0.091758,
+   "vega_to_ab": -0.02442
+  },
+  {
+   "filter": "WFC3_UVIS_F600LP",
+   "native_system": "Vega",
+   "vega_to_st": 0.992958,
+   "vega_to_ab": 0.324082
+  },
+  {
+   "filter": "WFC3_UVIS_F606W",
+   "native_system": "Vega",
+   "vega_to_st": 0.240576,
+   "vega_to_ab": 0.083013
+  },
+  {
+   "filter": "WFC3_UVIS_F621M",
+   "native_system": "Vega",
+   "vega_to_st": 0.42261,
+   "vega_to_ab": 0.146192
+  },
+  {
+   "filter": "WFC3_UVIS_F625W",
+   "native_system": "Vega",
+   "vega_to_st": 0.432396,
+   "vega_to_ab": 0.148078
+  },
+  {
+   "filter": "WFC3_UVIS_F631N",
+   "native_system": "Vega",
+   "vega_to_st": 0.463927,
+   "vega_to_ab": 0.157768
+  },
+  {
+   "filter": "WFC3_UVIS_F645N",
+   "native_system": "Vega",
+   "vega_to_st": 0.546515,
+   "vega_to_ab": 0.18956
+  },
+  {
+   "filter": "WFC3_UVIS_F656N",
+   "native_system": "Vega",
+   "vega_to_st": 1.013088,
+   "vega_to_ab": 0.620403
+  },
+  {
+   "filter": "WFC3_UVIS_F657N",
+   "native_system": "Vega",
+   "vega_to_st": 0.720202,
+   "vega_to_ab": 0.325542
+  },
+  {
+   "filter": "WFC3_UVIS_F658N",
+   "native_system": "Vega",
+   "vega_to_st": 0.762428,
+   "vega_to_ab": 0.36208
+  },
+  {
+   "filter": "WFC3_UVIS_F665N",
+   "native_system": "Vega",
+   "vega_to_st": 0.660589,
+   "vega_to_ab": 0.236611
+  },
+  {
+   "filter": "WFC3_UVIS_F673N",
+   "native_system": "Vega",
+   "vega_to_st": 0.698476,
+   "vega_to_ab": 0.238895
+  },
+  {
+   "filter": "WFC3_UVIS_F680N",
+   "native_system": "Vega",
+   "vega_to_st": 0.752419,
+   "vega_to_ab": 0.257328
+  },
+  {
+   "filter": "WFC3_UVIS_F689M",
+   "native_system": "Vega",
+   "vega_to_st": 0.771601,
+   "vega_to_ab": 0.276873
+  },
+  {
+   "filter": "WFC3_UVIS_F763M",
+   "native_system": "Vega",
+   "vega_to_st": 1.09469,
+   "vega_to_ab": 0.3788
+  },
+  {
+   "filter": "WFC3_UVIS_F775W",
+   "native_system": "Vega",
+   "vega_to_st": 1.106567,
+   "vega_to_ab": 0.380746
+  },
+  {
+   "filter": "WFC3_UVIS_F814W",
+   "native_system": "Vega",
+   "vega_to_st": 1.249656,
+   "vega_to_ab": 0.418257
+  },
+  {
+   "filter": "WFC3_UVIS_F845M",
+   "native_system": "Vega",
+   "vega_to_st": 1.439277,
+   "vega_to_ab": 0.500252
+  },
+  {
+   "filter": "WFC3_UVIS_F850LP",
+   "native_system": "Vega",
+   "vega_to_st": 1.640322,
+   "vega_to_ab": 0.5208
+  },
+  {
+   "filter": "WFC3_UVIS_F953N",
+   "native_system": "Vega",
+   "vega_to_st": 1.817663,
+   "vega_to_ab": 0.614161
+  },
+  {
+   "filter": "WFC3_IR_F098M",
+   "native_system": "Vega",
+   "vega_to_st": 1.839929,
+   "vega_to_ab": 0.561553
+  },
+  {
+   "filter": "WFC3_IR_F105W",
+   "native_system": "Vega",
+   "vega_to_st": 2.069729,
+   "vega_to_ab": 0.645302
+  },
+  {
+   "filter": "WFC3_IR_F110W",
+   "native_system": "Vega",
+   "vega_to_st": 2.377424,
+   "vega_to_ab": 0.759489
+  },
+  {
+   "filter": "WFC3_IR_F125W",
+   "native_system": "Vega",
+   "vega_to_st": 2.691129,
+   "vega_to_ab": 0.901052
+  },
+  {
+   "filter": "WFC3_IR_F126N",
+   "native_system": "Vega",
+   "vega_to_st": 2.728329,
+   "vega_to_ab": 0.92113
+  },
+  {
+   "filter": "WFC3_IR_F127M",
+   "native_system": "Vega",
+   "vega_to_st": 2.795047,
+   "vega_to_ab": 0.961204
+  },
+  {
+   "filter": "WFC3_IR_F128N",
+   "native_system": "Vega",
+   "vega_to_st": 2.886508,
+   "vega_to_ab": 1.037116
+  },
+  {
+   "filter": "WFC3_IR_F130N",
+   "native_system": "Vega",
+   "vega_to_st": 2.854722,
+   "vega_to_ab": 0.976109
+  },
+  {
+   "filter": "WFC3_IR_F132N",
+   "native_system": "Vega",
+   "vega_to_st": 2.906179,
+   "vega_to_ab": 0.997375
+  },
+  {
+   "filter": "WFC3_IR_F139M",
+   "native_system": "Vega",
+   "vega_to_st": 3.091872,
+   "vega_to_ab": 1.078618
+  },
+  {
+   "filter": "WFC3_IR_F140W",
+   "native_system": "Vega",
+   "vega_to_st": 3.102928,
+   "vega_to_ab": 1.076328
+  },
+  {
+   "filter": "WFC3_IR_F153M",
+   "native_system": "Vega",
+   "vega_to_st": 3.488218,
+   "vega_to_ab": 1.253686
+  },
+  {
+   "filter": "WFC3_IR_F160W",
+   "native_system": "Vega",
+   "vega_to_st": 3.49265,
+   "vega_to_ab": 1.251445
+  },
+  {
+   "filter": "WFC3_IR_F164N",
+   "native_system": "Vega",
+   "vega_to_st": 3.767375,
+   "vega_to_ab": 1.384753
+  },
+  {
+   "filter": "WFC3_IR_F167N",
+   "native_system": "Vega",
+   "vega_to_st": 3.7755,
+   "vega_to_ab": 1.361575
+  },
+  {
+   "filter": "WFPC2_F218W",
+   "native_system": "Vega",
+   "vega_to_st": -0.278397,
+   "vega_to_ab": 1.696001
+  },
+  {
+   "filter": "WFPC2_F255W",
+   "native_system": "Vega",
+   "vega_to_st": -0.050464,
+   "vega_to_ab": 1.565908
+  },
+  {
+   "filter": "WFPC2_F300W",
+   "native_system": "Vega",
+   "vega_to_st": 0.026125,
+   "vega_to_ab": 1.336668
+  },
+  {
+   "filter": "WFPC2_F336W",
+   "native_system": "Vega",
+   "vega_to_st": 0.12263,
+   "vega_to_ab": 1.183504
+  },
+  {
+   "filter": "WFPC2_F439W",
+   "native_system": "Vega",
+   "vega_to_st": -0.664368,
+   "vega_to_ab": -0.145544
+  },
+  {
+   "filter": "WFPC2_F450W",
+   "native_system": "Vega",
+   "vega_to_st": -0.484289,
+   "vega_to_ab": -0.084954
+  },
+  {
+   "filter": "WFPC2_F555W",
+   "native_system": "Vega",
+   "vega_to_st": -0.0159,
+   "vega_to_ab": -0.001464
+  },
+  {
+   "filter": "WFPC2_F606W",
+   "native_system": "Vega",
+   "vega_to_st": 0.297727,
+   "vega_to_ab": 0.100171
+  },
+  {
+   "filter": "WFPC2_F622W",
+   "native_system": "Vega",
+   "vega_to_st": 0.406463,
+   "vega_to_ab": 0.141358
+  },
+  {
+   "filter": "WFPC2_F675W",
+   "native_system": "Vega",
+   "vega_to_st": 0.68364,
+   "vega_to_ab": 0.23969
+  },
+  {
+   "filter": "WFPC2_F791W",
+   "native_system": "Vega",
+   "vega_to_st": 1.201484,
+   "vega_to_ab": 0.410745
+  },
+  {
+   "filter": "WFPC2_F814W",
+   "native_system": "Vega",
+   "vega_to_st": 1.243529,
+   "vega_to_ab": 0.416817
+  },
+  {
+   "filter": "WFPC2_F850LP",
+   "native_system": "Vega",
+   "vega_to_st": 1.628746,
+   "vega_to_ab": 0.518736
+  },
+  {
+   "filter": "INT_IPHAS_gR",
+   "native_system": "Vega",
+   "vega_to_st": 0.422955,
+   "vega_to_ab": 0.146731
+  },
+  {
+   "filter": "INT_IPHAS_Ha",
+   "native_system": "Vega",
+   "vega_to_st": 0.753818,
+   "vega_to_ab": 0.358673
+  },
+  {
+   "filter": "INT_IPHAS_gI",
+   "native_system": "Vega",
+   "vega_to_st": 1.143547,
+   "vega_to_ab": 0.393872
+  },
+  {
+   "filter": "F070W",
+   "native_system": "Vega",
+   "vega_to_st": 0.807113,
+   "vega_to_ab": 0.277827
+  },
+  {
+   "filter": "F090W",
+   "native_system": "Vega",
+   "vega_to_st": 1.596532,
+   "vega_to_ab": 0.511469
+  },
+  {
+   "filter": "F115W",
+   "native_system": "Vega",
+   "vega_to_st": 2.397871,
+   "vega_to_ab": 0.777727
+  },
+  {
+   "filter": "F140M",
+   "native_system": "Vega",
+   "vega_to_st": 3.150233,
+   "vega_to_ab": 1.103238
+  },
+  {
+   "filter": "F150W2",
+   "native_system": "Vega",
+   "vega_to_st": 3.638258,
+   "vega_to_ab": 1.228996
+  },
+  {
+   "filter": "F150W",
+   "native_system": "Vega",
+   "vega_to_st": 3.395463,
+   "vega_to_ab": 1.205652
+  },
+  {
+   "filter": "F162M",
+   "native_system": "Vega",
+   "vega_to_st": 3.717215,
+   "vega_to_ab": 1.351846
+  },
+  {
+   "filter": "F164N",
+   "native_system": "Vega",
+   "vega_to_st": 3.780254,
+   "vega_to_ab": 1.391996
+  },
+  {
+   "filter": "F182M",
+   "native_system": "Vega",
+   "vega_to_st": 4.196167,
+   "vega_to_ab": 1.558015
+  },
+  {
+   "filter": "F187N",
+   "native_system": "Vega",
+   "vega_to_st": 4.295891,
+   "vega_to_ab": 1.62421
+  },
+  {
+   "filter": "F200W",
+   "native_system": "Vega",
+   "vega_to_st": 4.476147,
+   "vega_to_ab": 1.675761
+  },
+  {
+   "filter": "F210M",
+   "native_system": "Vega",
+   "vega_to_st": 4.694407,
+   "vega_to_ab": 1.780225
+  },
+  {
+   "filter": "F212N",
+   "native_system": "Vega",
+   "vega_to_st": 4.741969,
+   "vega_to_ab": 1.801134
+  },
+  {
+   "filter": "F250M",
+   "native_system": "Vega",
+   "vega_to_st": 5.417244,
+   "vega_to_ab": 2.116563
+  },
+  {
+   "filter": "F277W",
+   "native_system": "Vega",
+   "vega_to_st": 5.818282,
+   "vega_to_ab": 2.295891
+  },
+  {
+   "filter": "F300M",
+   "native_system": "Vega",
+   "vega_to_st": 6.147738,
+   "vega_to_ab": 2.457418
+  },
+  {
+   "filter": "F322W2",
+   "native_system": "Vega",
+   "vega_to_st": 6.385763,
+   "vega_to_ab": 2.533096
+  },
+  {
+   "filter": "F323N",
+   "native_system": "Vega",
+   "vega_to_st": 6.464886,
+   "vega_to_ab": 2.606257
+  },
+  {
+   "filter": "F335M",
+   "native_system": "Vega",
+   "vega_to_st": 6.620067,
+   "vega_to_ab": 2.680412
+  },
+  {
+   "filter": "F356W",
+   "native_system": "Vega",
+   "vega_to_st": 6.845848,
+   "vega_to_ab": 2.781285
+  },
+  {
+   "filter": "F360M",
+   "native_system": "Vega",
+   "vega_to_st": 6.933009,
+   "vega_to_ab": 2.830344
+  },
+  {
+   "filter": "F405N",
+   "native_system": "Vega",
+   "vega_to_st": 7.427233,
+   "vega_to_ab": 3.081301
+  },
+  {
+   "filter": "F410M",
+   "native_system": "Vega",
+   "vega_to_st": 7.434069,
+   "vega_to_ab": 3.072036
+  },
+  {
+   "filter": "F430M",
+   "native_system": "Vega",
+   "vega_to_st": 7.636414,
+   "vega_to_ab": 3.170645
+  },
+  {
+   "filter": "F444W",
+   "native_system": "Vega",
+   "vega_to_st": 7.733486,
+   "vega_to_ab": 3.207505
+  },
+  {
+   "filter": "F460M",
+   "native_system": "Vega",
+   "vega_to_st": 7.969036,
+   "vega_to_ab": 3.333257
+  },
+  {
+   "filter": "F466N",
+   "native_system": "Vega",
+   "vega_to_st": 8.022737,
+   "vega_to_ab": 3.375634
+  },
+  {
+   "filter": "F470N",
+   "native_system": "Vega",
+   "vega_to_st": 8.03523,
+   "vega_to_ab": 3.363519
+  },
+  {
+   "filter": "F480M",
+   "native_system": "Vega",
+   "vega_to_st": 8.128712,
+   "vega_to_ab": 3.407118
+  },
+  {
+   "filter": "LSST_u",
+   "native_system": "AB",
+   "vega_to_st": -0.213066,
+   "vega_to_ab": 0.658455
+  },
+  {
+   "filter": "LSST_g",
+   "native_system": "AB",
+   "vega_to_st": -0.37408,
+   "vega_to_ab": -0.091776
+  },
+  {
+   "filter": "LSST_r",
+   "native_system": "AB",
+   "vega_to_st": 0.418363,
+   "vega_to_ab": 0.145008
+  },
+  {
+   "filter": "LSST_i",
+   "native_system": "AB",
+   "vega_to_st": 1.057461,
+   "vega_to_ab": 0.363627
+  },
+  {
+   "filter": "LSST_z",
+   "native_system": "AB",
+   "vega_to_st": 1.509448,
+   "vega_to_ab": 0.507514
+  },
+  {
+   "filter": "LSST_y",
+   "native_system": "AB",
+   "vega_to_st": 1.786473,
+   "vega_to_ab": 0.543658
+  },
+  {
+   "filter": "PS_g",
+   "native_system": "AB",
+   "vega_to_st": -0.351542,
+   "vega_to_ab": -0.087801
+  },
+  {
+   "filter": "PS_r",
+   "native_system": "AB",
+   "vega_to_st": 0.413845,
+   "vega_to_ab": 0.143531
+  },
+  {
+   "filter": "PS_i",
+   "native_system": "AB",
+   "vega_to_st": 1.056578,
+   "vega_to_ab": 0.363226
+  },
+  {
+   "filter": "PS_z",
+   "native_system": "AB",
+   "vega_to_st": 1.506211,
+   "vega_to_ab": 0.507125
+  },
+  {
+   "filter": "PS_y",
+   "native_system": "AB",
+   "vega_to_st": 1.764576,
+   "vega_to_ab": 0.539014
+  },
+  {
+   "filter": "PS_w",
+   "native_system": "AB",
+   "vega_to_st": 0.425688,
+   "vega_to_ab": 0.125908
+  },
+  {
+   "filter": "PS_open",
+   "native_system": "AB",
+   "vega_to_st": 0.71531,
+   "vega_to_ab": 0.19941
+  },
+  {
+   "filter": "SDSS_u",
+   "native_system": "AB",
+   "vega_to_st": -0.005824,
+   "vega_to_ab": 0.931096
+  },
+  {
+   "filter": "SDSS_g",
+   "native_system": "AB",
+   "vega_to_st": -0.431,
+   "vega_to_ab": -0.100592
+  },
+  {
+   "filter": "SDSS_r",
+   "native_system": "AB",
+   "vega_to_st": 0.403808,
+   "vega_to_ab": 0.142469
+  },
+  {
+   "filter": "SDSS_i",
+   "native_system": "AB",
+   "vega_to_st": 1.036204,
+   "vega_to_ab": 0.355853
+  },
+  {
+   "filter": "SDSS_z",
+   "native_system": "AB",
+   "vega_to_st": 1.584227,
+   "vega_to_ab": 0.517963
+  },
+  {
+   "filter": "SkyMapper_u",
+   "native_system": "AB",
+   "vega_to_st": 0.143267,
+   "vega_to_ab": 1.104895
+  },
+  {
+   "filter": "SkyMapper_v",
+   "native_system": "AB",
+   "vega_to_st": -0.460789,
+   "vega_to_ab": 0.31195
+  },
+  {
+   "filter": "SkyMapper_g",
+   "native_system": "AB",
+   "vega_to_st": -0.223002,
+   "vega_to_ab": -0.058233
+  },
+  {
+   "filter": "SkyMapper_r",
+   "native_system": "AB",
+   "vega_to_st": 0.37612,
+   "vega_to_ab": 0.127869
+  },
+  {
+   "filter": "SkyMapper_i",
+   "native_system": "AB",
+   "vega_to_st": 1.160368,
+   "vega_to_ab": 0.400876
+  },
+  {
+   "filter": "SkyMapper_z",
+   "native_system": "AB",
+   "vega_to_st": 1.640164,
+   "vega_to_ab": 0.525982
+  },
+  {
+   "filter": "IRAC_3.6",
+   "native_system": "Vega",
+   "vega_to_st": 6.848464,
+   "vega_to_ab": 2.785147
+  },
+  {
+   "filter": "IRAC_4.5",
+   "native_system": "Vega",
+   "vega_to_st": 7.833123,
+   "vega_to_ab": 3.258136
+  },
+  {
+   "filter": "IRAC_5.8",
+   "native_system": "Vega",
+   "vega_to_st": 8.85513,
+   "vega_to_ab": 3.750716
+  },
+  {
+   "filter": "IRAC_8.0",
+   "native_system": "Vega",
+   "vega_to_st": 10.192009,
+   "vega_to_ab": 4.391595
+  },
+  {
+   "filter": "hsc_g",
+   "native_system": "AB",
+   "vega_to_st": -0.385232,
+   "vega_to_ab": -0.095381
+  },
+  {
+   "filter": "hsc_r",
+   "native_system": "AB",
+   "vega_to_st": 0.418631,
+   "vega_to_ab": 0.143814
+  },
+  {
+   "filter": "hsc_i",
+   "native_system": "AB",
+   "vega_to_st": 1.123724,
+   "vega_to_ab": 0.38648
+  },
+  {
+   "filter": "hsc_z",
+   "native_system": "AB",
+   "vega_to_st": 1.600675,
+   "vega_to_ab": 0.513929
+  },
+  {
+   "filter": "hsc_y",
+   "native_system": "AB",
+   "vega_to_st": 1.806233,
+   "vega_to_ab": 0.548435
+  },
+  {
+   "filter": "hsc_nb816",
+   "native_system": "AB",
+   "vega_to_st": 1.340376,
+   "vega_to_ab": 0.469517
+  },
+  {
+   "filter": "hsc_nb921",
+   "native_system": "AB",
+   "vega_to_st": 1.671034,
+   "vega_to_ab": 0.540824
+  },
+  {
+   "filter": "Swift_UVW2",
+   "native_system": "AB",
+   "vega_to_st": -0.390787,
+   "vega_to_ab": 1.734154
+  },
+  {
+   "filter": "Swift_UVM2",
+   "native_system": "AB",
+   "vega_to_st": -0.247102,
+   "vega_to_ab": 1.68698
+  },
+  {
+   "filter": "Swift_UVW1",
+   "native_system": "AB",
+   "vega_to_st": -0.121676,
+   "vega_to_ab": 1.510161
+  },
+  {
+   "filter": "Swift_U",
+   "native_system": "AB",
+   "vega_to_st": 0.020865,
+   "vega_to_ab": 1.013124
+  },
+  {
+   "filter": "Swift_B",
+   "native_system": "AB",
+   "vega_to_st": -0.615727,
+   "vega_to_ab": -0.115885
+  },
+  {
+   "filter": "Swift_V",
+   "native_system": "AB",
+   "vega_to_st": -0.024917,
+   "vega_to_ab": -0.004726
+  },
+  {
+   "filter": "Bessell_U",
+   "native_system": "Vega",
+   "vega_to_st": -0.112035,
+   "vega_to_ab": 0.800527
+  },
+  {
+   "filter": "Bessell_B",
+   "native_system": "Vega",
+   "vega_to_st": -0.594221,
+   "vega_to_ab": -0.107512
+  },
+  {
+   "filter": "Bessell_V",
+   "native_system": "Vega",
+   "vega_to_st": 0.01134,
+   "vega_to_ab": 0.006521
+  },
+  {
+   "filter": "Bessell_R",
+   "native_system": "Vega",
+   "vega_to_st": 0.568462,
+   "vega_to_ab": 0.190278
+  },
+  {
+   "filter": "Bessell_I",
+   "native_system": "Vega",
+   "vega_to_st": 1.249636,
+   "vega_to_ab": 0.431372
+  },
+  {
+   "filter": "2MASS_J",
+   "native_system": "Vega",
+   "vega_to_st": 2.656686,
+   "vega_to_ab": 0.889176
+  },
+  {
+   "filter": "2MASS_H",
+   "native_system": "Vega",
+   "vega_to_st": 3.753842,
+   "vega_to_ab": 1.364157
+  },
+  {
+   "filter": "2MASS_Ks",
+   "native_system": "Vega",
+   "vega_to_st": 4.815035,
+   "vega_to_ab": 1.834505
+  },
+  {
+   "filter": "Kepler_Kp",
+   "native_system": "Vega",
+   "vega_to_st": 0.428473,
+   "vega_to_ab": 0.122666
+  },
+  {
+   "filter": "Kepler_D51",
+   "native_system": "Vega",
+   "vega_to_st": -0.178119,
+   "vega_to_ab": -0.052236
+  },
+  {
+   "filter": "Hipparcos_Hp",
+   "native_system": "Vega",
+   "vega_to_st": -0.043887,
+   "vega_to_ab": 0.007642
+  },
+  {
+   "filter": "Tycho_B",
+   "native_system": "Vega",
+   "vega_to_st": -0.641996,
+   "vega_to_ab": -0.060855
+  },
+  {
+   "filter": "Tycho_V",
+   "native_system": "Vega",
+   "vega_to_st": -0.084969,
+   "vega_to_ab": -0.014228
+  },
+  {
+   "filter": "Gaia_G_DR2Rev",
+   "native_system": "Vega",
+   "vega_to_st": 0.410114,
+   "vega_to_ab": 0.123891
+  },
+  {
+   "filter": "Gaia_BP_DR2Rev",
+   "native_system": "Vega",
+   "vega_to_st": -0.110591,
+   "vega_to_ab": 0.06559
+  },
+  {
+   "filter": "Gaia_RP_DR2Rev",
+   "native_system": "Vega",
+   "vega_to_st": 1.120561,
+   "vega_to_ab": 0.368669
+  },
+  {
+   "filter": "TESS",
+   "native_system": "Vega",
+   "vega_to_st": 1.1543,
+   "vega_to_ab": 0.363778
+  },
+  {
+   "filter": "UKIDSS_Z",
+   "native_system": "Vega",
+   "vega_to_st": 1.549954,
+   "vega_to_ab": 0.513127
+  },
+  {
+   "filter": "UKIDSS_Y",
+   "native_system": "Vega",
+   "vega_to_st": 1.990089,
+   "vega_to_ab": 0.614878
+  },
+  {
+   "filter": "UKIDSS_J",
+   "native_system": "Vega",
+   "vega_to_st": 2.708005,
+   "vega_to_ab": 0.915245
+  },
+  {
+   "filter": "UKIDSS_H",
+   "native_system": "Vega",
+   "vega_to_st": 3.729479,
+   "vega_to_ab": 1.35253
+  },
+  {
+   "filter": "UKIDSS_K",
+   "native_system": "Vega",
+   "vega_to_st": 4.897422,
+   "vega_to_ab": 1.871458
+  },
+  {
+   "filter": "Washington_C",
+   "native_system": "Vega",
+   "vega_to_st": -0.43285,
+   "vega_to_ab": 0.332454
+  },
+  {
+   "filter": "Washington_M",
+   "native_system": "Vega",
+   "vega_to_st": -0.205646,
+   "vega_to_ab": -0.051436
+  },
+  {
+   "filter": "Washington_T1",
+   "native_system": "Vega",
+   "vega_to_st": 0.531087,
+   "vega_to_ab": 0.185742
+  },
+  {
+   "filter": "Washington_T2",
+   "native_system": "Vega",
+   "vega_to_st": 1.297327,
+   "vega_to_ab": 0.449972
+  },
+  {
+   "filter": "DDO51_vac",
+   "native_system": "Vega",
+   "vega_to_st": -0.192974,
+   "vega_to_ab": -0.057579
+  },
+  {
+   "filter": "DDO51_f31",
+   "native_system": "Vega",
+   "vega_to_st": -0.200442,
+   "vega_to_ab": -0.059975
+  },
+  {
+   "filter": "Stromgren_u",
+   "native_system": "Vega",
+   "vega_to_st": 0.15028,
+   "vega_to_ab": 1.135368
+  },
+  {
+   "filter": "Stromgren_v",
+   "native_system": "Vega",
+   "vega_to_st": -0.756072,
+   "vega_to_ab": -0.132136
+  },
+  {
+   "filter": "Stromgren_b",
+   "native_system": "Vega",
+   "vega_to_st": -0.500662,
+   "vega_to_ab": -0.152966
+  },
+  {
+   "filter": "Stromgren_y",
+   "native_system": "Vega",
+   "vega_to_st": -0.003578,
+   "vega_to_ab": 0.002927
+  },
+  {
+   "filter": "WFIRST_R062",
+   "native_system": "Vega",
+   "vega_to_st": 0.429702,
+   "vega_to_ab": 0.137095
+  },
+  {
+   "filter": "WFIRST_Z087",
+   "native_system": "Vega",
+   "vega_to_st": 1.495606,
+   "vega_to_ab": 0.487379
+  },
+  {
+   "filter": "WFIRST_Y106",
+   "native_system": "Vega",
+   "vega_to_st": 2.090705,
+   "vega_to_ab": 0.65378
+  },
+  {
+   "filter": "WFIRST_J129",
+   "native_system": "Vega",
+   "vega_to_st": 2.827025,
+   "vega_to_ab": 0.958363
+  },
+  {
+   "filter": "WFIRST_W146",
+   "native_system": "Vega",
+   "vega_to_st": 3.132416,
+   "vega_to_ab": 1.024467
+  },
+  {
+   "filter": "WFIRST_H158",
+   "native_system": "Vega",
+   "vega_to_st": 3.589896,
+   "vega_to_ab": 1.287404
+  },
+  {
+   "filter": "WFIRST_F184",
+   "native_system": "Vega",
+   "vega_to_st": 4.189278,
+   "vega_to_ab": 1.551332
+  },
+  {
+   "filter": "WISE_W1",
+   "native_system": "Vega",
+   "vega_to_st": 6.610497,
+   "vega_to_ab": 2.665543
+  },
+  {
+   "filter": "WISE_W2",
+   "native_system": "Vega",
+   "vega_to_st": 7.935423,
+   "vega_to_ab": 3.305247
+  },
+  {
+   "filter": "WISE_W3",
+   "native_system": "Vega",
+   "vega_to_st": 11.856446,
+   "vega_to_ab": 5.139422
+  },
+  {
+   "filter": "WISE_W4",
+   "native_system": "Vega",
+   "vega_to_st": 14.653819,
+   "vega_to_ab": 6.614602
+  }
+ ]
+}

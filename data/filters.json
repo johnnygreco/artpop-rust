@@ -1,0 +1,1003 @@
+{
+ "schema_version": "1",
+ "systems": [
+  "HST_WFC3",
+  "HST_ACSWF",
+  "SDSSugriz",
+  "CFHTugriz",
+  "DECam",
+  "HSC",
+  "JWST",
+  "LSST",
+  "UBVRIplus",
+  "UKIDSS",
+  "WFIRST",
+  "GALEX"
+ ],
+ "filters": [
+  {
+   "name": "WFC3_UVIS_F200LP",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 5825.545410736765,
+   "lam_eff_angstrom": 4232.983536869494
+  },
+  {
+   "name": "WFC3_UVIS_F218W",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 330.78394217574686,
+   "lam_eff_angstrom": 2220.2322227765503
+  },
+  {
+   "name": "WFC3_UVIS_F225W",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 466.9985983395018,
+   "lam_eff_angstrom": 2358.8216716492057
+  },
+  {
+   "name": "WFC3_UVIS_F275W",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 406.29519406722153,
+   "lam_eff_angstrom": 2699.9675375110237
+  },
+  {
+   "name": "WFC3_UVIS_F280N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 42.60841549450888,
+   "lam_eff_angstrom": 2812.8426942954547
+  },
+  {
+   "name": "WFC3_UVIS_F300X",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 711.5599298713324,
+   "lam_eff_angstrom": 2783.991343172605
+  },
+  {
+   "name": "WFC3_UVIS_F336W",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 511.7514663961287,
+   "lam_eff_angstrom": 3347.2808458275395
+  },
+  {
+   "name": "WFC3_UVIS_F343N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 249.55956190490525,
+   "lam_eff_angstrom": 3433.044528067298
+  },
+  {
+   "name": "WFC3_UVIS_F350LP",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 4750.795022789694,
+   "lam_eff_angstrom": 5440.760121406588
+  },
+  {
+   "name": "WFC3_UVIS_F373N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 49.64472732499165,
+   "lam_eff_angstrom": 3730.0710976614773
+  },
+  {
+   "name": "WFC3_UVIS_F390M",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 204.3322734689049,
+   "lam_eff_angstrom": 3896.1723988669823
+  },
+  {
+   "name": "WFC3_UVIS_F390W",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 893.0802078823524,
+   "lam_eff_angstrom": 3902.9069267806167
+  },
+  {
+   "name": "WFC3_UVIS_F395N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 85.18665632047824,
+   "lam_eff_angstrom": 3955.0193022558224
+  },
+  {
+   "name": "WFC3_UVIS_F410M",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 172.00263214181635,
+   "lam_eff_angstrom": 4108.184173095446
+  },
+  {
+   "name": "WFC3_UVIS_F438W",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 614.1728591074029,
+   "lam_eff_angstrom": 4317.48115601411
+  },
+  {
+   "name": "WFC3_UVIS_F467M",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 200.94933972757298,
+   "lam_eff_angstrom": 4681.525371117347
+  },
+  {
+   "name": "WFC3_UVIS_F469N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 49.66670014625441,
+   "lam_eff_angstrom": 4688.024508446551
+  },
+  {
+   "name": "WFC3_UVIS_F475W",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 1342.2335884373574,
+   "lam_eff_angstrom": 4736.374339685895
+  },
+  {
+   "name": "WFC3_UVIS_F475X",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 2053.2527347092264,
+   "lam_eff_angstrom": 4850.504875901524
+  },
+  {
+   "name": "WFC3_UVIS_F487N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 60.41181692713544,
+   "lam_eff_angstrom": 4871.284806726931
+  },
+  {
+   "name": "WFC3_UVIS_F502N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 65.30836774352588,
+   "lam_eff_angstrom": 5009.510240203585
+  },
+  {
+   "name": "WFC3_UVIS_F547M",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 650.1865525859424,
+   "lam_eff_angstrom": 5439.6041235492785
+  },
+  {
+   "name": "WFC3_UVIS_F555W",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 1563.6449078951487,
+   "lam_eff_angstrom": 5256.110986066236
+  },
+  {
+   "name": "WFC3_UVIS_F600LP",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 2304.6286927234746,
+   "lam_eff_angstrom": 7324.453608193678
+  },
+  {
+   "name": "WFC3_UVIS_F606W",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 2183.7432695856883,
+   "lam_eff_angstrom": 5813.017607900692
+  },
+  {
+   "name": "WFC3_UVIS_F621M",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 609.7152740152659,
+   "lam_eff_angstrom": 6213.118504260353
+  },
+  {
+   "name": "WFC3_UVIS_F625W",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 1460.2657365146786,
+   "lam_eff_angstrom": 6208.444129913239
+  },
+  {
+   "name": "WFC3_UVIS_F631N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 58.26581839862247,
+   "lam_eff_angstrom": 6304.051434145734
+  },
+  {
+   "name": "WFC3_UVIS_F645N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 84.21970995466764,
+   "lam_eff_angstrom": 6453.342304505665
+  },
+  {
+   "name": "WFC3_UVIS_F656N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 17.67347227903582,
+   "lam_eff_angstrom": 6561.178208489097
+  },
+  {
+   "name": "WFC3_UVIS_F657N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 121.03252815160974,
+   "lam_eff_angstrom": 6566.364515074064
+  },
+  {
+   "name": "WFC3_UVIS_F658N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 27.567065961052567,
+   "lam_eff_angstrom": 6581.787618238675
+  },
+  {
+   "name": "WFC3_UVIS_F665N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 131.23222384277656,
+   "lam_eff_angstrom": 6655.600309292341
+  },
+  {
+   "name": "WFC3_UVIS_F673N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 117.78335741128693,
+   "lam_eff_angstrom": 6765.685432957148
+  },
+  {
+   "name": "WFC3_UVIS_F680N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 370.4800262844454,
+   "lam_eff_angstrom": 6875.650953701396
+  },
+  {
+   "name": "WFC3_UVIS_F689M",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 682.961048482114,
+   "lam_eff_angstrom": 6870.042937810292
+  },
+  {
+   "name": "WFC3_UVIS_F763M",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 705.1418119663987,
+   "lam_eff_angstrom": 7606.642178617627
+  },
+  {
+   "name": "WFC3_UVIS_F775W",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 1170.1791427382382,
+   "lam_eff_angstrom": 7625.242536326707
+  },
+  {
+   "name": "WFC3_UVIS_F814W",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 1540.1391311798852,
+   "lam_eff_angstrom": 7972.962328570179
+  },
+  {
+   "name": "WFC3_UVIS_F845M",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 788.9774078598072,
+   "lam_eff_angstrom": 8429.506647832983
+  },
+  {
+   "name": "WFC3_UVIS_F850LP",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 1179.580190152308,
+   "lam_eff_angstrom": 9144.420083108098
+  },
+  {
+   "name": "WFC3_UVIS_F953N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 96.85651658695345,
+   "lam_eff_angstrom": 9530.078136450033
+  },
+  {
+   "name": "WFC3_IR_F098M",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 1569.9382549697684,
+   "lam_eff_angstrom": 9839.091851021341
+  },
+  {
+   "name": "WFC3_IR_F105W",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 2649.413448376971,
+   "lam_eff_angstrom": 10483.036028091197
+  },
+  {
+   "name": "WFC3_IR_F110W",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 4429.649187096942,
+   "lam_eff_angstrom": 11356.206639856518
+  },
+  {
+   "name": "WFC3_IR_F125W",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 2845.3642285661194,
+   "lam_eff_angstrom": 12425.748453925162
+  },
+  {
+   "name": "WFC3_IR_F126N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 152.05491256633718,
+   "lam_eff_angstrom": 12576.31128626732
+  },
+  {
+   "name": "WFC3_IR_F127M",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 687.5965432799679,
+   "lam_eff_angstrom": 12735.52739301383
+  },
+  {
+   "name": "WFC3_IR_F128N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 158.8404589913361,
+   "lam_eff_angstrom": 12822.770064432121
+  },
+  {
+   "name": "WFC3_IR_F130N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 156.07808918336536,
+   "lam_eff_angstrom": 13000.603784848125
+  },
+  {
+   "name": "WFC3_IR_F132N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 160.81926749240495,
+   "lam_eff_angstrom": 13180.927857864372
+  },
+  {
+   "name": "WFC3_IR_F139M",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 642.9936005290573,
+   "lam_eff_angstrom": 13832.548804225991
+  },
+  {
+   "name": "WFC3_IR_F140W",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 3840.224132173076,
+   "lam_eff_angstrom": 13830.150906316505
+  },
+  {
+   "name": "WFC3_IR_F153M",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 684.6493497247807,
+   "lam_eff_angstrom": 15314.228613362802
+  },
+  {
+   "name": "WFC3_IR_F160W",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 2682.9694806944563,
+   "lam_eff_angstrom": 15324.720159669443
+  },
+  {
+   "name": "WFC3_IR_F164N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 208.55322715196903,
+   "lam_eff_angstrom": 16381.132108707145
+  },
+  {
+   "name": "WFC3_IR_F167N",
+   "system": "HST_WFC3",
+   "dlam_angstrom": 209.69426242308833,
+   "lam_eff_angstrom": 16623.312840553364
+  },
+  {
+   "name": "ACS_WFC_F435W",
+   "system": "HST_ACSWF",
+   "dlam_angstrom": 848.541099942403,
+   "lam_eff_angstrom": 4297.587971183408
+  },
+  {
+   "name": "ACS_WFC_F475W",
+   "system": "HST_ACSWF",
+   "dlam_angstrom": 1364.2564733040585,
+   "lam_eff_angstrom": 4707.0415025977445
+  },
+  {
+   "name": "ACS_WFC_F502N",
+   "system": "HST_ACSWF",
+   "dlam_angstrom": 56.61151746809736,
+   "lam_eff_angstrom": 5022.8300467910485
+  },
+  {
+   "name": "ACS_WFC_F550M",
+   "system": "HST_ACSWF",
+   "dlam_angstrom": 533.1994764885546,
+   "lam_eff_angstrom": 5576.421519696105
+  },
+  {
+   "name": "ACS_WFC_F555W",
+   "system": "HST_ACSWF",
+   "dlam_angstrom": 1126.7169902786957,
+   "lam_eff_angstrom": 5335.220269234967
+  },
+  {
+   "name": "ACS_WFC_F606W",
+   "system": "HST_ACSWF",
+   "dlam_angstrom": 2004.577197944222,
+   "lam_eff_angstrom": 5840.701543481071
+  },
+  {
+   "name": "ACS_WFC_F625W",
+   "system": "HST_ACSWF",
+   "dlam_angstrom": 1310.1012270350182,
+   "lam_eff_angstrom": 6283.124115257314
+  },
+  {
+   "name": "ACS_WFC_F658N",
+   "system": "HST_ACSWF",
+   "dlam_angstrom": 74.9708073194967,
+   "lam_eff_angstrom": 6583.755794864213
+  },
+  {
+   "name": "ACS_WFC_F660N",
+   "system": "HST_ACSWF",
+   "dlam_angstrom": 35.71172921133141,
+   "lam_eff_angstrom": 6599.262157380642
+  },
+  {
+   "name": "ACS_WFC_F775W",
+   "system": "HST_ACSWF",
+   "dlam_angstrom": 1320.7266461687016,
+   "lam_eff_angstrom": 7668.28182035434
+  },
+  {
+   "name": "ACS_WFC_F814W",
+   "system": "HST_ACSWF",
+   "dlam_angstrom": 1741.1909233756267,
+   "lam_eff_angstrom": 8005.233234794694
+  },
+  {
+   "name": "ACS_WFC_F850LP",
+   "system": "HST_ACSWF",
+   "dlam_angstrom": 1293.2706924956162,
+   "lam_eff_angstrom": 9021.71829772767
+  },
+  {
+   "name": "ACS_WFC_F892N",
+   "system": "HST_ACSWF",
+   "dlam_angstrom": 148.57927564798135,
+   "lam_eff_angstrom": 8914.709613570418
+  },
+  {
+   "name": "SDSS_u",
+   "system": "SDSSugriz",
+   "dlam_angstrom": 558.4101382488479,
+   "lam_eff_angstrom": 3545.9699901301087
+  },
+  {
+   "name": "SDSS_g",
+   "system": "SDSSugriz",
+   "dlam_angstrom": 1158.3725435925824,
+   "lam_eff_angstrom": 4669.63995746308
+  },
+  {
+   "name": "SDSS_r",
+   "system": "SDSSugriz",
+   "dlam_angstrom": 1111.1800610376401,
+   "lam_eff_angstrom": 6156.34741145635
+  },
+  {
+   "name": "SDSS_i",
+   "system": "SDSSugriz",
+   "dlam_angstrom": 1044.536971415072,
+   "lam_eff_angstrom": 7470.5973387313115
+  },
+  {
+   "name": "SDSS_z",
+   "system": "SDSSugriz",
+   "dlam_angstrom": 1124.5870393900889,
+   "lam_eff_angstrom": 8917.60458074428
+  },
+  {
+   "name": "CFHT_u",
+   "system": "CFHTugriz",
+   "dlam_angstrom": 574.7608419942852,
+   "lam_eff_angstrom": 3786.4414853352473
+  },
+  {
+   "name": "CFHT_g",
+   "system": "CFHTugriz",
+   "dlam_angstrom": 1322.4346355286755,
+   "lam_eff_angstrom": 4808.457508014347
+  },
+  {
+   "name": "CFHT_r",
+   "system": "CFHTugriz",
+   "dlam_angstrom": 1099.104976350212,
+   "lam_eff_angstrom": 6227.030214959724
+  },
+  {
+   "name": "CFHT_i_new",
+   "system": "CFHTugriz",
+   "dlam_angstrom": 1316.1138674314138,
+   "lam_eff_angstrom": 7510.89308071997
+  },
+  {
+   "name": "CFHT_i_old",
+   "system": "CFHTugriz",
+   "dlam_angstrom": 1220.835100453531,
+   "lam_eff_angstrom": 7653.4846936662725
+  },
+  {
+   "name": "CFHT_z",
+   "system": "CFHTugriz",
+   "dlam_angstrom": 998.3871030970363,
+   "lam_eff_angstrom": 8837.52929894243
+  },
+  {
+   "name": "DECam_u",
+   "system": "DECam",
+   "dlam_angstrom": 277.08613489985134,
+   "lam_eff_angstrom": 3825.2546475731424
+  },
+  {
+   "name": "DECam_g",
+   "system": "DECam",
+   "dlam_angstrom": 1137.5831627090702,
+   "lam_eff_angstrom": 4777.531498016062
+  },
+  {
+   "name": "DECam_r",
+   "system": "DECam",
+   "dlam_angstrom": 1382.8867468963292,
+   "lam_eff_angstrom": 6391.954275488903
+  },
+  {
+   "name": "DECam_i",
+   "system": "DECam",
+   "dlam_angstrom": 1375.8365038919335,
+   "lam_eff_angstrom": 7777.238354537264
+  },
+  {
+   "name": "DECam_z",
+   "system": "DECam",
+   "dlam_angstrom": 1269.1201500327313,
+   "lam_eff_angstrom": 9128.664938922222
+  },
+  {
+   "name": "DECam_Y",
+   "system": "DECam",
+   "dlam_angstrom": 679.2084736949199,
+   "lam_eff_angstrom": 9841.000975685774
+  },
+  {
+   "name": "hsc_g",
+   "system": "HSC",
+   "dlam_angstrom": 1179.4125763847824,
+   "lam_eff_angstrom": 4755.402792168176
+  },
+  {
+   "name": "hsc_r",
+   "system": "HSC",
+   "dlam_angstrom": 1433.204366979506,
+   "lam_eff_angstrom": 6184.096612757404
+  },
+  {
+   "name": "hsc_i",
+   "system": "HSC",
+   "dlam_angstrom": 1442.313111545988,
+   "lam_eff_angstrom": 7661.329637003102
+  },
+  {
+   "name": "hsc_z",
+   "system": "HSC",
+   "dlam_angstrom": 751.6448598130842,
+   "lam_eff_angstrom": 8896.845257077013
+  },
+  {
+   "name": "hsc_y",
+   "system": "HSC",
+   "dlam_angstrom": 749.2540792540792,
+   "lam_eff_angstrom": 9761.70570460198
+  },
+  {
+   "name": "hsc_nb816",
+   "system": "HSC",
+   "dlam_angstrom": 116.05275125056843,
+   "lam_eff_angstrom": 8176.576297934199
+  },
+  {
+   "name": "hsc_nb921",
+   "system": "HSC",
+   "dlam_angstrom": 133.83138173302112,
+   "lam_eff_angstrom": 9213.83781781928
+  },
+  {
+   "name": "F070W",
+   "system": "JWST",
+   "dlam_angstrom": 1461.5363861234105,
+   "lam_eff_angstrom": 6948.639724962855
+  },
+  {
+   "name": "F090W",
+   "system": "JWST",
+   "dlam_angstrom": 1944.0245218149032,
+   "lam_eff_angstrom": 8982.175107318568
+  },
+  {
+   "name": "F115W",
+   "system": "JWST",
+   "dlam_angstrom": 2236.604999720139,
+   "lam_eff_angstrom": 11491.121271074775
+  },
+  {
+   "name": "F140M",
+   "system": "JWST",
+   "dlam_angstrom": 1420.9794865896158,
+   "lam_eff_angstrom": 14040.039882073457
+  },
+  {
+   "name": "F150W2",
+   "system": "JWST",
+   "dlam_angstrom": 11713.338583069944,
+   "lam_eff_angstrom": 15720.136266387062
+  },
+  {
+   "name": "F150W",
+   "system": "JWST",
+   "dlam_angstrom": 3170.7118196721017,
+   "lam_eff_angstrom": 14944.817944164322
+  },
+  {
+   "name": "F162M",
+   "system": "JWST",
+   "dlam_angstrom": 1678.8396781149443,
+   "lam_eff_angstrom": 16257.439506760993
+  },
+  {
+   "name": "F164N",
+   "system": "JWST",
+   "dlam_angstrom": 200.1351224878242,
+   "lam_eff_angstrom": 16445.3504999601
+  },
+  {
+   "name": "F182M",
+   "system": "JWST",
+   "dlam_angstrom": 2372.742116066273,
+   "lam_eff_angstrom": 18423.636865236083
+  },
+  {
+   "name": "F187N",
+   "system": "JWST",
+   "dlam_angstrom": 236.64519818144745,
+   "lam_eff_angstrom": 18738.315265995134
+  },
+  {
+   "name": "F200W",
+   "system": "JWST",
+   "dlam_angstrom": 4558.123053545357,
+   "lam_eff_angstrom": 19788.615786323066
+  },
+  {
+   "name": "F210M",
+   "system": "JWST",
+   "dlam_angstrom": 2053.1690909906592,
+   "lam_eff_angstrom": 20934.34439000866
+  },
+  {
+   "name": "F212N",
+   "system": "JWST",
+   "dlam_angstrom": 274.6213702929033,
+   "lam_eff_angstrom": 21210.42882937082
+  },
+  {
+   "name": "F250M",
+   "system": "JWST",
+   "dlam_angstrom": 1798.5700766393043,
+   "lam_eff_angstrom": 25022.54779028256
+  },
+  {
+   "name": "F277W",
+   "system": "JWST",
+   "dlam_angstrom": 6838.6093122810935,
+   "lam_eff_angstrom": 27568.634506540377
+  },
+  {
+   "name": "F300M",
+   "system": "JWST",
+   "dlam_angstrom": 3208.009015462333,
+   "lam_eff_angstrom": 29922.822889057086
+  },
+  {
+   "name": "F322W2",
+   "system": "JWST",
+   "dlam_angstrom": 14165.254389242238,
+   "lam_eff_angstrom": 31609.321107243028
+  },
+  {
+   "name": "F323N",
+   "system": "JWST",
+   "dlam_angstrom": 384.8518856792266,
+   "lam_eff_angstrom": 32368.211525871284
+  },
+  {
+   "name": "F335M",
+   "system": "JWST",
+   "dlam_angstrom": 3551.372489518277,
+   "lam_eff_angstrom": 33563.096837376615
+  },
+  {
+   "name": "F356W",
+   "system": "JWST",
+   "dlam_angstrom": 8087.390053590317,
+   "lam_eff_angstrom": 35418.90761675372
+  },
+  {
+   "name": "F360M",
+   "system": "JWST",
+   "dlam_angstrom": 3774.832430101684,
+   "lam_eff_angstrom": 36181.37762000497
+  },
+  {
+   "name": "F405N",
+   "system": "JWST",
+   "dlam_angstrom": 454.90501566679734,
+   "lam_eff_angstrom": 40511.505111059145
+  },
+  {
+   "name": "F410M",
+   "system": "JWST",
+   "dlam_angstrom": 4397.802748426921,
+   "lam_eff_angstrom": 40771.66639720746
+  },
+  {
+   "name": "F430M",
+   "system": "JWST",
+   "dlam_angstrom": 2277.9713946677202,
+   "lam_eff_angstrom": 42800.416158616936
+  },
+  {
+   "name": "F444W",
+   "system": "JWST",
+   "dlam_angstrom": 10265.873360534151,
+   "lam_eff_angstrom": 43783.263040243604
+  },
+  {
+   "name": "F460M",
+   "system": "JWST",
+   "dlam_angstrom": 2284.8640614943556,
+   "lam_eff_angstrom": 46285.851269310326
+  },
+  {
+   "name": "F466N",
+   "system": "JWST",
+   "dlam_angstrom": 536.0283742018532,
+   "lam_eff_angstrom": 46537.236767452814
+  },
+  {
+   "name": "F470N",
+   "system": "JWST",
+   "dlam_angstrom": 510.30947721618264,
+   "lam_eff_angstrom": 47066.02552958913
+  },
+  {
+   "name": "F480M",
+   "system": "JWST",
+   "dlam_angstrom": 3047.487085939278,
+   "lam_eff_angstrom": 48141.49483219199
+  },
+  {
+   "name": "LSST_u",
+   "system": "LSST",
+   "dlam_angstrom": 546.6535705850741,
+   "lam_eff_angstrom": 3654.3945755749355
+  },
+  {
+   "name": "LSST_g",
+   "system": "LSST",
+   "dlam_angstrom": 1332.5248330302486,
+   "lam_eff_angstrom": 4769.753876490117
+  },
+  {
+   "name": "LSST_r",
+   "system": "LSST",
+   "dlam_angstrom": 1337.8785366580278,
+   "lam_eff_angstrom": 6183.198403846463
+  },
+  {
+   "name": "LSST_i",
+   "system": "LSST",
+   "dlam_angstrom": 1208.9717991944324,
+   "lam_eff_angstrom": 7517.847226838877
+  },
+  {
+   "name": "LSST_z",
+   "system": "LSST",
+   "dlam_angstrom": 994.0857233265936,
+   "lam_eff_angstrom": 8674.800624279222
+  },
+  {
+   "name": "LSST_y",
+   "system": "LSST",
+   "dlam_angstrom": 810.0858165876734,
+   "lam_eff_angstrom": 9693.0383492585
+  },
+  {
+   "name": "Bessell_U",
+   "system": "UBVRIplus",
+   "dlam_angstrom": 621.5,
+   "lam_eff_angstrom": 3583.6850653736396
+  },
+  {
+   "name": "Bessell_B",
+   "system": "UBVRIplus",
+   "dlam_angstrom": 917.8000000000001,
+   "lam_eff_angstrom": 4349.852278039785
+  },
+  {
+   "name": "Bessell_V",
+   "system": "UBVRIplus",
+   "dlam_angstrom": 876.6999999999999,
+   "lam_eff_angstrom": 5464.429228533658
+  },
+  {
+   "name": "Bessell_R",
+   "system": "UBVRIplus",
+   "dlam_angstrom": 1497.5,
+   "lam_eff_angstrom": 6457.753265976926
+  },
+  {
+   "name": "Bessell_I",
+   "system": "UBVRIplus",
+   "dlam_angstrom": 1431.6000000000001,
+   "lam_eff_angstrom": 7954.825332738311
+  },
+  {
+   "name": "2MASS_J",
+   "system": "UBVRIplus",
+   "dlam_angstrom": 1690.049847515,
+   "lam_eff_angstrom": 12318.94530048931
+  },
+  {
+   "name": "2MASS_H",
+   "system": "UBVRIplus",
+   "dlam_angstrom": 2542.7483790210003,
+   "lam_eff_angstrom": 16420.04122830472
+  },
+  {
+   "name": "2MASS_Ks",
+   "system": "UBVRIplus",
+   "dlam_angstrom": 2715.894079675,
+   "lam_eff_angstrom": 21567.483749855342
+  },
+  {
+   "name": "Kepler_Kp",
+   "system": "UBVRIplus",
+   "dlam_angstrom": 3528.4277793103447,
+   "lam_eff_angstrom": 6081.52798384746
+  },
+  {
+   "name": "Kepler_D51",
+   "system": "UBVRIplus",
+   "dlam_angstrom": 193.18615751789974,
+   "lam_eff_angstrom": 5166.225678386724
+  },
+  {
+   "name": "Hipparcos_Hp",
+   "system": "UBVRIplus",
+   "dlam_angstrom": 2271.5,
+   "lam_eff_angstrom": 5193.060105607274
+  },
+  {
+   "name": "Tycho_B",
+   "system": "UBVRIplus",
+   "dlam_angstrom": 719.0500000000002,
+   "lam_eff_angstrom": 4173.464274573371
+  },
+  {
+   "name": "Tycho_V",
+   "system": "UBVRIplus",
+   "dlam_angstrom": 993.6500000000001,
+   "lam_eff_angstrom": 5270.838416294483
+  },
+  {
+   "name": "Gaia_G_DR2Rev",
+   "system": "UBVRIplus",
+   "dlam_angstrom": 4412.491934261452,
+   "lam_eff_angstrom": 5901.7047776304635
+  },
+  {
+   "name": "Gaia_BP_DR2Rev",
+   "system": "UBVRIplus",
+   "dlam_angstrom": 2625.8613190277215,
+   "lam_eff_angstrom": 4887.818213507714
+  },
+  {
+   "name": "Gaia_RP_DR2Rev",
+   "system": "UBVRIplus",
+   "dlam_angstrom": 2762.0429234819303,
+   "lam_eff_angstrom": 7626.5473291076705
+  },
+  {
+   "name": "Gaia_G_MAW",
+   "system": "UBVRIplus",
+   "dlam_angstrom": 4474.630325,
+   "lam_eff_angstrom": 5900.520343144282
+  },
+  {
+   "name": "Gaia_BP_MAWb",
+   "system": "UBVRIplus",
+   "dlam_angstrom": 2597.7356999999997,
+   "lam_eff_angstrom": 4974.507644952954
+  },
+  {
+   "name": "Gaia_BP_MAWf",
+   "system": "UBVRIplus",
+   "dlam_angstrom": 2754.663125,
+   "lam_eff_angstrom": 4880.36933094795
+  },
+  {
+   "name": "Gaia_RP_MAW",
+   "system": "UBVRIplus",
+   "dlam_angstrom": 2633.5904,
+   "lam_eff_angstrom": 7635.997495442341
+  },
+  {
+   "name": "TESS",
+   "system": "UBVRIplus",
+   "dlam_angstrom": 3898.6457081,
+   "lam_eff_angstrom": 7697.320342727119
+  },
+  {
+   "name": "UKIDSS_Z",
+   "system": "UKIDSS",
+   "dlam_angstrom": 878.8523084994754,
+   "lam_eff_angstrom": 8817.306092252953
+  },
+  {
+   "name": "UKIDSS_Y",
+   "system": "UKIDSS",
+   "dlam_angstrom": 1007.4784946236558,
+   "lam_eff_angstrom": 10305.122639307765
+  },
+  {
+   "name": "UKIDSS_J",
+   "system": "UKIDSS",
+   "dlam_angstrom": 1474.397519887693,
+   "lam_eff_angstrom": 12483.345856038603
+  },
+  {
+   "name": "UKIDSS_H",
+   "system": "UKIDSS",
+   "dlam_angstrom": 2772.8045112781956,
+   "lam_eff_angstrom": 16313.26232828006
+  },
+  {
+   "name": "UKIDSS_K",
+   "system": "UKIDSS",
+   "dlam_angstrom": 3266.5236500627875,
+   "lam_eff_angstrom": 22010.181744676705
+  },
+  {
+   "name": "R062",
+   "system": "WFIRST",
+   "dlam_angstrom": 2619.7622657111356,
+   "lam_eff_angstrom": 6163.7947078959605
+  },
+  {
+   "name": "Z087",
+   "system": "WFIRST",
+   "dlam_angstrom": 2085.902981940361,
+   "lam_eff_angstrom": 8664.527508869705
+  },
+  {
+   "name": "Y106",
+   "system": "WFIRST",
+   "dlam_angstrom": 2619.2819499341235,
+   "lam_eff_angstrom": 10554.864744682269
+  },
+  {
+   "name": "J129",
+   "system": "WFIRST",
+   "dlam_angstrom": 3164.456900469626,
+   "lam_eff_angstrom": 12879.143672103515
+  },
+  {
+   "name": "W146",
+   "system": "WFIRST",
+   "dlam_angstrom": 9809.738736336976,
+   "lam_eff_angstrom": 13761.588858328543
+  },
+  {
+   "name": "H158",
+   "system": "WFIRST",
+   "dlam_angstrom": 3834.8254750175934,
+   "lam_eff_angstrom": 15724.120491407986
+  },
+  {
+   "name": "F184",
+   "system": "WFIRST",
+   "dlam_angstrom": 3117.7431388222753,
+   "lam_eff_angstrom": 18402.30675413479
+  },
+  {
+   "name": "GALEX_FUV",
+   "system": "GALEX",
+   "dlam_angstrom": 252.17364144827428,
+   "lam_eff_angstrom": 1529.6006896567123
+  },
+  {
+   "name": "GALEX_NUV",
+   "system": "GALEX",
+   "dlam_angstrom": 729.6483278669571,
+   "lam_eff_angstrom": 2270.043875117461
+  }
+ ]
+}

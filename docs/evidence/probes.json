@@ -1,0 +1,246 @@
+{
+  "python": "3.10.12 (main, Aug 31 2026, 10:18:17) [GCC 11.4.0]",
+  "packages": {
+    "numpy": "2.2.6",
+    "scipy": "1.15.3",
+    "astropy": "6.1.7",
+    "matplotlib": "3.10.9",
+    "fast-histogram": "0.14",
+    "pytest": "9.1.1",
+    "requests": "2.34.2"
+  },
+  "probes": {
+    "histogram_edges": {
+      "result": [
+        {
+          "x": -0.01,
+          "sum": 0.0,
+          "yx": []
+        },
+        {
+          "x": 0,
+          "sum": 1.0,
+          "yx": [
+            [
+              1,
+              0
+            ]
+          ]
+        },
+        {
+          "x": 0.79,
+          "sum": 1.0,
+          "yx": [
+            [
+              1,
+              0
+            ]
+          ]
+        },
+        {
+          "x": 0.8,
+          "sum": 1.0,
+          "yx": [
+            [
+              1,
+              1
+            ]
+          ]
+        },
+        {
+          "x": 1,
+          "sum": 1.0,
+          "yx": [
+            [
+              1,
+              1
+            ]
+          ]
+        },
+        {
+          "x": 3.99,
+          "sum": 1.0,
+          "yx": [
+            [
+              1,
+              4
+            ]
+          ]
+        },
+        {
+          "x": 4,
+          "sum": 0.0,
+          "yx": []
+        },
+        {
+          "x": 4.99,
+          "sum": 0.0,
+          "yx": []
+        },
+        {
+          "x": 5,
+          "sum": 0.0,
+          "yx": []
+        }
+      ]
+    },
+    "grid_float_offset": {
+      "error": "UFuncTypeError",
+      "message": "Cannot cast ufunc 'add' output from dtype('float64') to dtype('int64') with casting rule 'same_kind'"
+    },
+    "grid_same_size_shift": {
+      "result": [
+        5,
+        4
+      ]
+    },
+    "grid_asymmetric_orientation": {
+      "result": [
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          3
+        ]
+      ]
+    },
+    "imf_minus_one": {
+      "error": "ZeroDivisionError",
+      "message": "float division by zero"
+    },
+    "imf_minus_two": {
+      "error": "ZeroDivisionError",
+      "message": "float division by zero"
+    },
+    "instrument_sky_pixel_scale": {
+      "result": [
+        100.0,
+        100.0
+      ]
+    },
+    "instrument_precedence": {
+      "result": {
+        "zpt_inst": null
+      }
+    },
+    "filter_system_constructor": {
+      "error": "TypeError",
+      "message": "'NoneType' object does not support item assignment"
+    },
+    "composite_full_plus_partial": {
+      "error": "AttributeError",
+      "message": "'SSP' object has no attribute 'integrated_abs_mags'"
+    },
+    "unresolved_sbf_extinction": {
+      "result": {
+        "sbf_change_for_one_mag_extinction": 0.9995228499742619,
+        "total_mag_change": 1.0,
+        "sampled": 359,
+        "integrated": 9641
+      }
+    },
+    "uniform_imf_normalization": {
+      "result": {
+        "kroupa": {
+          "requested_stars": 255,
+          "expected_mean_mag": 6.016894294147098
+        },
+        "salpeter": {
+          "requested_stars": 255,
+          "expected_mean_mag": 7.004245855584919
+        }
+      }
+    },
+    "mist_interpolation_rotation_forwarding": {
+      "result": [
+        {
+          "positional": [
+            10,
+            -1.25,
+            "LSST",
+            "/tmp/unused"
+          ],
+          "keyword": {}
+        },
+        {
+          "positional": [
+            10,
+            -1.0,
+            "LSST",
+            "/tmp/unused"
+          ],
+          "keyword": {}
+        }
+      ]
+    },
+    "remnants_restricted_upper_mass": {
+      "result": {
+        "with": 0.6294317123786423,
+        "without": 0.7063202800663078
+      }
+    },
+    "negative_observed_variance": {
+      "result": {
+        "min_variance": -0.22015386968802828,
+        "negative_pixels": 13
+      }
+    },
+    "partially_masked_coordinates": {
+      "result": 1
+    },
+    "mist_age_grid": {
+      "result": {
+        "min": 5.0,
+        "max": 10.299999999999981,
+        "count": 107
+      }
+    },
+    "data_inventory": {
+      "result": {
+        "systems": {
+          "UKIDSS": 5,
+          "WFIRST": 7,
+          "LSST": 6,
+          "DECam": 6,
+          "SDSSugriz": 5,
+          "HST_WFC3": 57,
+          "HSC": 7,
+          "JWST": 29,
+          "UBVRIplus": 21,
+          "HST_ACSWF": 13,
+          "CFHTugriz": 6,
+          "GALEX": 2
+        },
+        "filter_name_entries": 164,
+        "filter_properties_rows": 164,
+        "curve_files": 164,
+        "fixture_rows": 1467,
+        "fixture_columns": [
+          "EEP",
+          "log10_isochrone_age_yr",
+          "initial_mass",
+          "star_mass",
+          "log_Teff",
+          "log_g",
+          "log_L",
+          "[Fe/H]_init",
+          "[Fe/H]",
+          "LSST_u",
+          "LSST_g",
+          "LSST_r",
+          "LSST_i",
+          "LSST_z",
+          "LSST_y",
+          "phase"
+        ],
+        "missing_curves_by_stem": []
+      }
+    }
+  }
+}

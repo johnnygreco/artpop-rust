@@ -1,0 +1,9 @@
+# Reference/testing tools only. These are not artpop-rust runtime dependencies.
+numpy==2.2.6
+scipy==1.15.3
+astropy==6.1.7
+matplotlib==3.10.9
+fast-histogram==0.14
+pytest==9.1.1
+requests==2.34.2
+mpmath==1.3.0

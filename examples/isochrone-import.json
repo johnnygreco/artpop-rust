@@ -1,0 +1,10 @@
+{
+  "schema_version": "1",
+  "format": "csv",
+  "path": "fixtures/lsst_feh_m1.00_10gyr_iso.csv",
+  "magnitude_columns": { "LSST_g": "LSST_g", "LSST_r": "LSST_r", "LSST_i": "LSST_i" },
+  "magnitude_system": "AB",
+  "eep_column": "EEP",
+  "log_l_column": "log_L",
+  "log_teff_column": "log_Teff"
+}

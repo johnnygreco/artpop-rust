@@ -1,0 +1,5 @@
+histogram/python: median 1.255s
+ideal/python: median 1.274s
+detector/python: median 1.303s
+population/python: median 1.534s
+grid/python: median 1.334s

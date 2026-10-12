@@ -1,0 +1,27 @@
+[
+  {
+    "path": "src/artpop/data/feh_m1.00_vvcrit0.4_LSST_10gyr_test_iso.pkl",
+    "bytes": 202788,
+    "sha256": "e03abfe8ff0f84f1a005bee5b1f646c24cb66d5920a469b7d3f1b90f6c26ee64"
+  },
+  {
+    "path": "src/artpop/data/filter_properties.pkl",
+    "bytes": 5129,
+    "sha256": "a697700304c095856b1c48e9c10abbdc7fcfd63720e1e9d33cdec980ef033ed7"
+  },
+  {
+    "path": "src/artpop/data/mist_filter_names.pkl",
+    "bytes": 2298,
+    "sha256": "5087e9bc73b1072fce9a2050916a57dcef9abd8c7d82ba060e85a6d44390e955"
+  },
+  {
+    "path": "src/artpop/data/phot_system_lookup.pkl",
+    "bytes": 2554,
+    "sha256": "e0ebdedee4a50ca085e6c1bfb4d017f12b9a443fec85e36e6445bf2c02c74000"
+  },
+  {
+    "path": "src/artpop/data/zeropoints.txt",
+    "bytes": 14553,
+    "sha256": "c9591df2d68122fc9cb3c07401761f311fd69b5d1824609e59d9642b3350fda2"
+  }
+]

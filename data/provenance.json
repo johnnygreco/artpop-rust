@@ -1,0 +1,23 @@
+{
+ "schema_version": "1",
+ "upstream": {
+  "repository": "https://github.com/ArtificialStellarPopulations/ArtPop",
+  "commit": "38a886906ed175d0205bf48b6dc03f54aeb4a81a",
+  "license": "MIT"
+ },
+ "generator": "tools/convert_bundled_data.py",
+ "python": "3.10.12",
+ "sources": {
+  "mist_filter_names.pkl": "5087e9bc73b1072fce9a2050916a57dcef9abd8c7d82ba060e85a6d44390e955",
+  "filter_properties.pkl": "a697700304c095856b1c48e9c10abbdc7fcfd63720e1e9d33cdec980ef033ed7",
+  "phot_system_lookup.pkl": "e0ebdedee4a50ca085e6c1bfb4d017f12b9a443fec85e36e6445bf2c02c74000",
+  "zeropoints.txt": "c9591df2d68122fc9cb3c07401761f311fd69b5d1824609e59d9642b3350fda2",
+  "feh_m1.00_vvcrit0.4_LSST_10gyr_test_iso.pkl": "e03abfe8ff0f84f1a005bee5b1f646c24cb66d5920a469b7d3f1b90f6c26ee64"
+ },
+ "outputs": {
+  "data/filters.json": "c5ac2eddc278e8ff7ec5e0c9040a740bcaa019fac4a88aa0a64e70a03b6cee3f",
+  "data/zeropoints.json": "6f92c138e65ffe44afd839cc0bb70659e26b3728a80192e152ab916847925866",
+  "fixtures/lsst_feh_m1.00_10gyr_iso.csv": "b91101a40b635f14523c79120390030b1bffaecdcd940791a4e6a9cdd7b76d25"
+ },
+ "notes": "MIST filter metadata and zero points originate from the MIST project (https://mist.science); redistribution terms of external model data are tracked separately from the ArtPop MIT license."
+}

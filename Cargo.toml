@@ -1,0 +1,32 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/artpop-core",
+    "crates/artpop-io",
+    "crates/artpop-service",
+    "crates/artpop-mcp",
+    "crates/artpop-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+authors = ["artpop-rust contributors"]
+repository = "https://github.com/ArtificialStellarPopulations/ArtPop"
+
+[workspace.dependencies]
+artpop-core = { path = "crates/artpop-core" }
+artpop-io = { path = "crates/artpop-io" }
+artpop-service = { path = "crates/artpop-service" }
+artpop-mcp = { path = "crates/artpop-mcp" }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 4
+debug = false
+
+[profile.dev.package."*"]
+opt-level = 2

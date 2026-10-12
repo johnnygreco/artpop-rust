@@ -1,0 +1,313 @@
+{
+  "schema_version": "1",
+  "measurement": "fresh-process end-to-end workflows at scale; Rust times include the Python adapter process that drives the CLI",
+  "python": "3.10.12 (main, Aug 31 2026, 10:18:17) [GCC 11.4.0]",
+  "platform": "Linux-6.8.0-1069-gcp-x86_64-with-glibc2.35",
+  "logical_cpus": 4,
+  "rust_binary": "/home/ubuntu/one-offs/artpop-rust/target/release/artpop-rust",
+  "rust_version": "artpop-rust 0.1.0",
+  "warmup": 1,
+  "repeat": 3,
+  "cases": {
+    "population_1m": {
+      "python": {
+        "median_seconds": 1.659015813987935,
+        "min_seconds": 1.6374297839938663,
+        "max_seconds": 1.682553933991585,
+        "median_sampled_peak_tree_rss_bytes": 205602816,
+        "samples": [
+          {
+            "wall_seconds": 1.682553933991585,
+            "sampled_peak_tree_rss_bytes": 203522048,
+            "load_average_1m_before": 1.53,
+            "load_average_1m_after": 1.49
+          },
+          {
+            "wall_seconds": 1.6374297839938663,
+            "sampled_peak_tree_rss_bytes": 205606912,
+            "load_average_1m_before": 1.49,
+            "load_average_1m_after": 1.49
+          },
+          {
+            "wall_seconds": 1.659015813987935,
+            "sampled_peak_tree_rss_bytes": 205602816,
+            "load_average_1m_before": 1.49,
+            "load_average_1m_after": 1.49
+          }
+        ]
+      },
+      "rust": {
+        "median_seconds": 0.2283187180000823,
+        "min_seconds": 0.22693112801061943,
+        "max_seconds": 0.22855181799968705,
+        "median_sampled_peak_tree_rss_bytes": 98164736,
+        "samples": [
+          {
+            "wall_seconds": 0.22693112801061943,
+            "sampled_peak_tree_rss_bytes": 97968128,
+            "load_average_1m_before": 1.49,
+            "load_average_1m_after": 1.49
+          },
+          {
+            "wall_seconds": 0.2283187180000823,
+            "sampled_peak_tree_rss_bytes": 98164736,
+            "load_average_1m_before": 1.49,
+            "load_average_1m_after": 1.49
+          },
+          {
+            "wall_seconds": 0.22855181799968705,
+            "sampled_peak_tree_rss_bytes": 98287616,
+            "load_average_1m_before": 1.49,
+            "load_average_1m_after": 1.49
+          }
+        ]
+      },
+      "consistency": {
+        "z_total_flux_LSST_g_rust": -1.4604325947421808,
+        "z_total_flux_LSST_g_python": -1.2511554341037154,
+        "z_total_flux_LSST_i_rust": -1.4963101061652968,
+        "z_total_flux_LSST_i_python": -1.4954741084795735
+      }
+    },
+    "sersic_ideal_1m": {
+      "python": {
+        "median_seconds": 2.0511272299918346,
+        "min_seconds": 2.0208254310127813,
+        "max_seconds": 2.058812819974264,
+        "median_sampled_peak_tree_rss_bytes": 344276992,
+        "samples": [
+          {
+            "wall_seconds": 2.0511272299918346,
+            "sampled_peak_tree_rss_bytes": 344477696,
+            "load_average_1m_before": 1.77,
+            "load_average_1m_after": 1.71
+          },
+          {
+            "wall_seconds": 2.058812819974264,
+            "sampled_peak_tree_rss_bytes": 344064000,
+            "load_average_1m_before": 1.71,
+            "load_average_1m_after": 1.71
+          },
+          {
+            "wall_seconds": 2.0208254310127813,
+            "sampled_peak_tree_rss_bytes": 344276992,
+            "load_average_1m_before": 1.71,
+            "load_average_1m_after": 1.65
+          }
+        ]
+      },
+      "rust": {
+        "median_seconds": 0.44237408600747585,
+        "min_seconds": 0.43850023599225096,
+        "max_seconds": 0.4456443260132801,
+        "median_sampled_peak_tree_rss_bytes": 143781888,
+        "samples": [
+          {
+            "wall_seconds": 0.4456443260132801,
+            "sampled_peak_tree_rss_bytes": 143781888,
+            "load_average_1m_before": 1.71,
+            "load_average_1m_after": 1.71
+          },
+          {
+            "wall_seconds": 0.43850023599225096,
+            "sampled_peak_tree_rss_bytes": 138141696,
+            "load_average_1m_before": 1.71,
+            "load_average_1m_after": 1.71
+          },
+          {
+            "wall_seconds": 0.44237408600747585,
+            "sampled_peak_tree_rss_bytes": 144171008,
+            "load_average_1m_before": 1.65,
+            "load_average_1m_after": 1.65
+          }
+        ]
+      },
+      "consistency": {
+        "image_sum_ratio": 0.9287972023718183,
+        "realization_rel_sigma": 0.030832217740684866
+      }
+    },
+    "artificial_2k": {
+      "python": {
+        "median_seconds": 3.7484091139922384,
+        "min_seconds": 3.56348471599631,
+        "max_seconds": 4.108624999993481,
+        "median_sampled_peak_tree_rss_bytes": 957259776,
+        "samples": [
+          {
+            "wall_seconds": 3.7484091139922384,
+            "sampled_peak_tree_rss_bytes": 959025152,
+            "load_average_1m_before": 1.6,
+            "load_average_1m_after": 1.6
+          },
+          {
+            "wall_seconds": 4.108624999993481,
+            "sampled_peak_tree_rss_bytes": 956809216,
+            "load_average_1m_before": 1.55,
+            "load_average_1m_after": 1.51
+          },
+          {
+            "wall_seconds": 3.56348471599631,
+            "sampled_peak_tree_rss_bytes": 957259776,
+            "load_average_1m_before": 1.51,
+            "load_average_1m_after": 1.51
+          }
+        ]
+      },
+      "rust": {
+        "median_seconds": 1.1935229679802433,
+        "min_seconds": 1.167645119014196,
+        "max_seconds": 1.2109096189960837,
+        "median_sampled_peak_tree_rss_bytes": 283496448,
+        "samples": [
+          {
+            "wall_seconds": 1.167645119014196,
+            "sampled_peak_tree_rss_bytes": 283496448,
+            "load_average_1m_before": 1.6,
+            "load_average_1m_after": 1.55
+          },
+          {
+            "wall_seconds": 1.1935229679802433,
+            "sampled_peak_tree_rss_bytes": 282832896,
+            "load_average_1m_before": 1.55,
+            "load_average_1m_after": 1.55
+          },
+          {
+            "wall_seconds": 1.2109096189960837,
+            "sampled_peak_tree_rss_bytes": 284217344,
+            "load_average_1m_before": 1.51,
+            "load_average_1m_after": 1.55
+          }
+        ]
+      },
+      "consistency": {
+        "source_counts_ratio": 1.1057099651381532,
+        "realization_rel_sigma": 0.030832217740684866
+      }
+    },
+    "uniform_hist_10m": {
+      "python": {
+        "median_seconds": 1.9387774909846485,
+        "min_seconds": 1.9085538119834382,
+        "max_seconds": 2.0141923209885135,
+        "median_sampled_peak_tree_rss_bytes": 450289664,
+        "samples": [
+          {
+            "wall_seconds": 1.9085538119834382,
+            "sampled_peak_tree_rss_bytes": 444059648,
+            "load_average_1m_before": 1.55,
+            "load_average_1m_after": 1.5
+          },
+          {
+            "wall_seconds": 1.9387774909846485,
+            "sampled_peak_tree_rss_bytes": 455860224,
+            "load_average_1m_before": 1.5,
+            "load_average_1m_after": 1.46
+          },
+          {
+            "wall_seconds": 2.0141923209885135,
+            "sampled_peak_tree_rss_bytes": 450289664,
+            "load_average_1m_before": 1.46,
+            "load_average_1m_after": 1.46
+          }
+        ]
+      },
+      "rust": {
+        "median_seconds": 1.174863218999235,
+        "min_seconds": 1.1555050389724784,
+        "max_seconds": 1.1854133690067101,
+        "median_sampled_peak_tree_rss_bytes": 332341248,
+        "samples": [
+          {
+            "wall_seconds": 1.1555050389724784,
+            "sampled_peak_tree_rss_bytes": 331571200,
+            "load_average_1m_before": 1.5,
+            "load_average_1m_after": 1.5
+          },
+          {
+            "wall_seconds": 1.174863218999235,
+            "sampled_peak_tree_rss_bytes": 344420352,
+            "load_average_1m_before": 1.5,
+            "load_average_1m_after": 1.5
+          },
+          {
+            "wall_seconds": 1.1854133690067101,
+            "sampled_peak_tree_rss_bytes": 332341248,
+            "load_average_1m_before": 1.46,
+            "load_average_1m_after": 1.46
+          }
+        ]
+      },
+      "consistency": {
+        "deposited_ratio": 1.000029929312769
+      }
+    },
+    "mist_mass_cutoff": {
+      "python": {
+        "median_seconds": 1.9647668709803838,
+        "min_seconds": 1.9280839219863992,
+        "max_seconds": 2.097437859978527,
+        "median_sampled_peak_tree_rss_bytes": 291516416,
+        "samples": [
+          {
+            "wall_seconds": 2.097437859978527,
+            "sampled_peak_tree_rss_bytes": 291516416,
+            "load_average_1m_before": 1.43,
+            "load_average_1m_after": 1.43
+          },
+          {
+            "wall_seconds": 1.9647668709803838,
+            "sampled_peak_tree_rss_bytes": 291831808,
+            "load_average_1m_before": 1.43,
+            "load_average_1m_after": 1.43
+          },
+          {
+            "wall_seconds": 1.9280839219863992,
+            "sampled_peak_tree_rss_bytes": 291479552,
+            "load_average_1m_before": 1.43,
+            "load_average_1m_after": 1.39
+          }
+        ]
+      },
+      "rust": {
+        "median_seconds": 0.1571334580075927,
+        "min_seconds": 0.1468441890028771,
+        "max_seconds": 0.1704136680054944,
+        "median_sampled_peak_tree_rss_bytes": 66555904,
+        "samples": [
+          {
+            "wall_seconds": 0.1704136680054944,
+            "sampled_peak_tree_rss_bytes": 66940928,
+            "load_average_1m_before": 1.43,
+            "load_average_1m_after": 1.43
+          },
+          {
+            "wall_seconds": 0.1468441890028771,
+            "sampled_peak_tree_rss_bytes": 65785856,
+            "load_average_1m_before": 1.43,
+            "load_average_1m_after": 1.43
+          },
+          {
+            "wall_seconds": 0.1571334580075927,
+            "sampled_peak_tree_rss_bytes": 66555904,
+            "load_average_1m_before": 1.39,
+            "load_average_1m_after": 1.39
+          }
+        ]
+      },
+      "consistency": {
+        "total_mag_diff_LSST_g": -0.004173764269825853,
+        "total_mag_diff_LSST_i": -0.012719918011896425
+      }
+    }
+  },
+  "speedups": {
+    "population_1m": 7.266227791220065,
+    "sersic_ideal_1m": 4.636635134991094,
+    "artificial_2k": 3.140625873614765,
+    "uniform_hist_10m": 1.6502154971164442,
+    "mist_mass_cutoff": 12.503809792599652
+  },
+  "cpu": "AMD EPYC 7B13",
+  "sample_order": "interleaved: warmups per backend, then alternating backend order per repetition"
+}

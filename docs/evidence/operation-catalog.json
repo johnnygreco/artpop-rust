@@ -1,0 +1,816 @@
+{
+ "schema_version": "1",
+ "operations": [
+  {
+   "operation": "system.capabilities",
+   "cli": "artpop-rust system capabilities",
+   "mcp_tool": "artpop_system_capabilities",
+   "inputs": "Optional domain filter",
+   "outputs": "Engine/schema/protocol versions, operations, algorithms, limits, format support, available datasets",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "coverage.rs"
+   ]
+  },
+  {
+   "operation": "system.schema",
+   "cli": "artpop-rust system schema",
+   "mcp_tool": "artpop_system_schema",
+   "inputs": "Operation ID, input/output selector",
+   "outputs": "Versioned JSON Schema and examples",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "coverage.rs"
+   ]
+  },
+  {
+   "operation": "system.validate",
+   "cli": "artpop-rust system validate",
+   "mcp_tool": "artpop_system_validate",
+   "inputs": "Operation ID plus request, or typed unit/RNG/geometry value",
+   "outputs": "Errors/warnings and resolved defaults; no expensive simulation or network",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "system.estimate",
+   "cli": "artpop-rust system estimate",
+   "mcp_tool": "artpop_system_estimate",
+   "inputs": "Operation ID plus validated request",
+   "outputs": "Memory, stars, grid/FFT shapes, output-size bounds, missing data, cost category",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "coverage.rs"
+   ]
+  },
+  {
+   "operation": "system.citations",
+   "cli": "artpop-rust system citations",
+   "mcp_tool": "artpop_system_citations",
+   "inputs": "Optional population/observation/data IDs",
+   "outputs": "Scientific/code references and provenance actually used",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "coverage.rs"
+   ]
+  },
+  {
+   "operation": "data.list",
+   "cli": "artpop-rust data list",
+   "mcp_tool": "artpop_data_list",
+   "inputs": "Provider/version/system/cache filters, cursor",
+   "outputs": "Available model manifests and local verified/completion state",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "coverage.rs"
+   ]
+  },
+  {
+   "operation": "data.fetch",
+   "cli": "artpop-rust data fetch",
+   "mcp_tool": "artpop_data_fetch",
+   "inputs": "Dataset identity or approved manifest ID, explicit destination/cache policy",
+   "outputs": "Verified local dataset, hashes, download/extraction metrics; online side effect",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "data.import",
+   "cli": "artpop-rust data import",
+   "mcp_tool": "artpop_data_import",
+   "inputs": "Local MIST directory/archive or dataset manifest",
+   "outputs": "Validated indexed cache entry without implicit download",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "coverage.rs",
+    "deviations.rs",
+    "test_extended_parity.py",
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "data.verify",
+   "cli": "artpop-rust data verify",
+   "mcp_tool": "artpop_data_verify",
+   "inputs": "Dataset ID, full-vs-metadata verification",
+   "outputs": "Missing/corrupt members and digest results",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "filters.list",
+   "cli": "artpop-rust filters list",
+   "mcp_tool": "artpop_filters_list",
+   "inputs": "Optional system(s), name lookup, cursor",
+   "outputs": "System/filter names, native magnitude reference, supported conversions",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "test_extended_parity.py",
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "filters.inspect",
+   "cli": "artpop-rust filters inspect",
+   "mcp_tool": "artpop_filters_inspect",
+   "inputs": "Filter/system/custom curve IDs, requested properties",
+   "outputs": "Width, effective/pivot wavelength, throughput, curve reference, units",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "coverage.rs"
+   ]
+  },
+  {
+   "operation": "filters.import",
+   "cli": "artpop-rust filters import",
+   "mcp_tool": "artpop_filters_import",
+   "inputs": "Curve files/inline arrays, column mapping, units, names, optional zero points",
+   "outputs": "Validated custom filter catalog artifact",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "deviations.rs",
+    "test_extended_parity.py"
+   ]
+  },
+  {
+   "operation": "filters.convert",
+   "cli": "artpop-rust filters convert",
+   "mcp_tool": "artpop_filters_convert",
+   "inputs": "Magnitude or color values, source/target system, filter(s), calibration table",
+   "outputs": "Offsets and converted values; missing conversion is explicit",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "test_extended_parity.py"
+   ]
+  },
+  {
+   "operation": "imf.evaluate",
+   "cli": "artpop-rust imf evaluate",
+   "mcp_tool": "artpop_imf_evaluate",
+   "inputs": "Preset/custom slopes, masses, output `dN_dm`/`m_dN_dm`, normalization and bounds",
+   "outputs": "Values, continuity/normalization metadata; named preset parameters available",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "test_extended_parity.py"
+   ]
+  },
+  {
+   "operation": "imf.integrate",
+   "cli": "artpop-rust imf integrate",
+   "mcp_tool": "artpop_imf_integrate",
+   "inputs": "IMF, mass limits, moment `number`/`mass`, normalization bool/value",
+   "outputs": "Integral and normalization used",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "cli_mcp.rs",
+    "deviations.rs",
+    "test_extended_parity.py"
+   ]
+  },
+  {
+   "operation": "imf.sample",
+   "cli": "artpop-rust imf sample",
+   "mcp_tool": "artpop_imf_sample",
+   "inputs": "IMF, count, mass bounds, algorithm, seed",
+   "outputs": "Sampled initial-mass artifact and statistics",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "cli_mcp.rs"
+   ]
+  },
+  {
+   "operation": "imf.build",
+   "cli": "artpop-rust imf build",
+   "mcp_tool": "artpop_imf_build",
+   "inputs": "IMF, target initial mass, batch/stopping policy, bounds, seed",
+   "outputs": "Mass catalog, realized mass, overshoot, draw count",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "coverage.rs"
+   ]
+  },
+  {
+   "operation": "isochrone.import",
+   "cli": "artpop-rust isochrone import",
+   "mcp_tool": "artpop_isochrone_import",
+   "inputs": "Generic columns, CSV, PARSEC, MIST `.iso`/`.iso.cmd`; column/age/Zini selectors",
+   "outputs": "Validated isochrone or indexed grid artifact, parser/model metadata",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "harness.py",
+    "scale_cases.py",
+    "test_extended_parity.py",
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "isochrone.mist",
+   "cli": "artpop-rust isochrone mist",
+   "mcp_tool": "artpop_isochrone_mist",
+   "inputs": "Version, rotation, abundance, log age, [Fe/H], system(s), target magnitude system, data ID",
+   "outputs": "Selected/interpolated isochrone, requested/resolved grid positions, interpolation provenance",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "cli_mcp.rs",
+    "deviations.rs",
+    "test_extended_parity.py",
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "isochrone.inspect",
+   "cli": "artpop-rust isochrone inspect",
+   "mcp_tool": "artpop_isochrone_inspect",
+   "inputs": "Isochrone/grid ID, summary or page/columns, optional nearest-age request",
+   "outputs": "Full table access, mass domain, filters, evolutionary columns, age-block index",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "deviations.rs",
+    "test_extended_parity.py",
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "isochrone.interpolate",
+   "cli": "artpop-rust isochrone interpolate",
+   "mcp_tool": "artpop_isochrone_interpolate",
+   "inputs": "ID, x/y columns, query x, selection, interpolation kind/order, bounds/fill policy",
+   "outputs": "Interpolated vector with method and valid domain",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "test_extended_parity.py"
+   ]
+  },
+  {
+   "operation": "isochrone.invert",
+   "cli": "artpop-rust isochrone invert",
+   "mcp_tool": "artpop_isochrone_invert",
+   "inputs": "ID, magnitude(s), band, system",
+   "outputs": "All mass crossings, row/segment identities, flat-segment status",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "test_extended_parity.py"
+   ]
+  },
+  {
+   "operation": "isochrone.magnitude-limit",
+   "cli": "artpop-rust isochrone magnitude-limit",
+   "mcp_tool": "artpop_isochrone_magnitude_limit",
+   "inputs": "ID, IMF, band, number-or-mass fraction, distance, cutoff frame",
+   "outputs": "Magnitude and mass threshold, sampled fraction",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "test_extended_parity.py"
+   ]
+  },
+  {
+   "operation": "isochrone.nearest",
+   "cli": "artpop-rust isochrone nearest",
+   "mcp_tool": "artpop_isochrone_nearest",
+   "inputs": "ID, initial mass values",
+   "outputs": "Nearest masses and row indices, stable tie rule",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "coverage.rs"
+   ]
+  },
+  {
+   "operation": "isochrone.weights",
+   "cli": "artpop-rust isochrone weights",
+   "mcp_tool": "artpop_isochrone_weights",
+   "inputs": "ID, IMF, normalization type/bounds",
+   "outputs": "Per-row IMF weights and integrals",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "test_extended_parity.py"
+   ]
+  },
+  {
+   "operation": "isochrone.integrated",
+   "cli": "artpop-rust isochrone integrated",
+   "mcp_tool": "artpop_isochrone_integrated",
+   "inputs": "ID, IMF, requested bands/colors/metrics, remnant model/bounds",
+   "outputs": "SSP magnitude/color/SBF, mean current mass, live/remnant fractions",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "deviations.rs",
+    "test_extended_parity.py"
+   ]
+  },
+  {
+   "operation": "population.build",
+   "cli": "artpop-rust population build",
+   "mcp_tool": "artpop_population_build",
+   "inputs": "Isochrone reference or MIST request, count/current mass, IMF, distance, extinction, cutoff, remnant/stopping options, seed",
+   "outputs": "Population artifact, sampled/unresolved accounting, realized mass/flux statistics",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "cli_mcp.rs",
+    "coverage.rs",
+    "deviations.rs",
+    "harness.py",
+    "scale_cases.py",
+    "test_extended_parity.py",
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "population.compose",
+   "cli": "artpop-rust population compose",
+   "mcp_tool": "artpop_population_compose",
+   "inputs": "Ordered population IDs, component labels",
+   "outputs": "Composite artifact, remapped IDs, per-component fractions and moments",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "deviations.rs",
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "population.inspect",
+   "cli": "artpop-rust population inspect",
+   "mcp_tool": "artpop_population_inspect",
+   "inputs": "ID, metric/metadata selector",
+   "outputs": "Mass definitions, distance modulus, count/fractions, component metadata, cutoff and provenance",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "harness.py",
+    "scale_cases.py",
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "population.query",
+   "cli": "artpop-rust population query",
+   "mcp_tool": "artpop_population_query",
+   "inputs": "ID, columns/bands, absolute/apparent mode, selection, page",
+   "outputs": "Catalog rows/column artifact; component and original star IDs retained",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "population.photometry",
+   "cli": "artpop-rust population photometry",
+   "mcp_tool": "artpop_population_photometry",
+   "inputs": "ID, bands/colors/metrics, selection, unresolved inclusion policy",
+   "outputs": "Total/mean/integrated-component/SBF magnitude, colors, moments and validity",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "deviations.rs",
+    "harness.py",
+    "scale_cases.py",
+    "test_extended_parity.py",
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "population.update",
+   "cli": "artpop-rust population update",
+   "mcp_tool": "artpop_population_update",
+   "inputs": "ID, new distance and/or scalar/per-band extinction",
+   "outputs": "New population artifact without resampling; changed cutoff consistency reported",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "deviations.rs"
+   ]
+  },
+  {
+   "operation": "population.sample-fraction",
+   "cli": "artpop-rust population sample-fraction",
+   "mcp_tool": "artpop_population_sample_fraction",
+   "inputs": "Population/isochrone ID, IMF, magnitude limit/band/frame",
+   "outputs": "Mass cutoff and sampled number/mass fractions without construction",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "test_extended_parity.py"
+   ]
+  },
+  {
+   "operation": "population.phases",
+   "cli": "artpop-rust population phases",
+   "mcp_tool": "artpop_population_phases",
+   "inputs": "ID or EEP array, phase/list/label mode",
+   "outputs": "Available phases, selection-mask artifact, counts or paged labels",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "population.surface-density",
+   "cli": "artpop-rust population surface-density",
+   "mcp_tool": "artpop_population_surface_density",
+   "inputs": "Surface brightness, mean absolute magnitude, distance, pixel scale",
+   "outputs": "Expected stars per square arcsec and per pixel",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "test_extended_parity.py"
+   ]
+  },
+  {
+   "operation": "source.build",
+   "cli": "artpop-rust source build",
+   "mcp_tool": "artpop_source_build",
+   "inputs": "Catalog+positions or population+spatial model; alternatively uniform-SB+isochrone; geometry, labels, seed",
+   "outputs": "Source artifact, retained IDs, smooth components, outside diagnostics; covers all seven exported source constructors",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "coverage.rs",
+    "deviations.rs",
+    "harness.py",
+    "scale_cases.py",
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "source.compose",
+   "cli": "artpop-rust source compose",
+   "mcp_tool": "artpop_source_compose",
+   "inputs": "Source IDs, geometry/band checks, `retain_smooth` default true",
+   "outputs": "Scene artifact with preserved component hierarchy; explicit discrete-only mode",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "deviations.rs"
+   ]
+  },
+  {
+   "operation": "source.inspect",
+   "cli": "artpop-rust source inspect",
+   "mcp_tool": "artpop_source_inspect",
+   "inputs": "Source ID",
+   "outputs": "Geometry, counts, labels, smooth components, population references, provenance",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "coverage.rs"
+   ]
+  },
+  {
+   "operation": "source.query",
+   "cli": "artpop-rust source query",
+   "mcp_tool": "artpop_source_query",
+   "inputs": "Source ID, coordinate/magnitude/label columns, selection, page",
+   "outputs": "Paged catalog or mask artifact; supports upstream label selection",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "coverage.rs",
+    "deviations.rs",
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "source.amplitude",
+   "cli": "artpop-rust source amplitude",
+   "mcp_tool": "artpop_source_amplitude",
+   "inputs": "Model parameters/source ID, total magnitude, zero point, pixel scale, normalization",
+   "outputs": "Surface brightness and image amplitude plus parameter name/units",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "test_extended_parity.py"
+   ]
+  },
+  {
+   "operation": "spatial.evaluate",
+   "cli": "artpop-rust spatial evaluate",
+   "mcp_tool": "artpop_spatial_evaluate",
+   "inputs": "Built-in/model AST and x/y arrays or grid geometry",
+   "outputs": "Model values; covers Constant2D, Plummer2D, S\u00e9rsic and ring",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "spatial.grid-build",
+   "cli": "artpop-rust spatial grid-build",
+   "mcp_tool": "artpop_spatial_grid_build",
+   "inputs": "Model or supplied weights, grid geometry, sampler kind, memory budget",
+   "outputs": "Validated reusable weighted-grid/CDF/alias artifact and normalization",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "deviations.rs",
+    "harness.py",
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "spatial.sample",
+   "cli": "artpop-rust spatial sample",
+   "mcp_tool": "artpop_spatial_sample",
+   "inputs": "Grid or S\u00e9rsic/Plummer/uniform request, count, physical geometry, offsets, outside policy, seed",
+   "outputs": "Position artifact, generated/retained counts and mask; optional count histogram",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "deviations.rs",
+    "harness.py",
+    "scale_cases.py",
+    "test_extended_parity.py",
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "psf.build",
+   "cli": "artpop-rust psf build",
+   "mcp_tool": "artpop_psf_build",
+   "inputs": "Gaussian/Moffat, FWHM+units, pixel scale, odd shape, discretization mode/factor/tolerance",
+   "outputs": "Normalized PSF artifact and diagnostics",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "cli_mcp.rs",
+    "harness.py",
+    "scale_cases.py",
+    "test_extended_parity.py",
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "psf.import",
+   "cli": "artpop-rust psf import",
+   "mcp_tool": "artpop_psf_import",
+   "inputs": "Image artifact/FITS plane, origin, normalization policy",
+   "outputs": "Validated empirical PSF artifact",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "imager.inspect",
+   "cli": "artpop-rust imager inspect",
+   "mcp_tool": "artpop_imager_inspect",
+   "inputs": "Tagged instrument spec or stored observation",
+   "outputs": "Filter set, aperture area, calibration mode, units and validation",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "deviations.rs"
+   ]
+  },
+  {
+   "operation": "imager.convert",
+   "cli": "artpop-rust imager convert",
+   "mcp_tool": "artpop_imager_convert",
+   "inputs": "Instrument, mode `mag_counts`/`sky_counts`/`calibration`/`ab_fnu`, values, band, exposure, pixel scale/zpt",
+   "outputs": "Converted values, constants, units",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "deviations.rs",
+    "test_extended_parity.py"
+   ]
+  },
+  {
+   "operation": "image.histogram",
+   "cli": "artpop-rust image histogram",
+   "mcp_tool": "artpop_image_histogram",
+   "inputs": "x/y/weight arrays or catalog, geometry, selection, bin convention",
+   "outputs": "Weighted image or count map, accepted/outside/invalid totals and flux diagnostics",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "coverage.rs",
+    "deviations.rs",
+    "harness.py",
+    "scale_cases.py",
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "image.smooth",
+   "cli": "artpop-rust image smooth",
+   "mcp_tool": "artpop_image_smooth",
+   "inputs": "Image/empty geometry, smooth source components, band, flux/count calibration",
+   "outputs": "Image with integrated light, component amplitudes and captured flux",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "coverage.rs"
+   ]
+  },
+  {
+   "operation": "image.convolve",
+   "cli": "artpop-rust image convolve",
+   "mcp_tool": "artpop_image_convolve",
+   "inputs": "Image, PSF, wrap/fill, direct/FFT method",
+   "outputs": "Convolved image with normalization and edge diagnostics",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "test_extended_parity.py",
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "observe.ideal",
+   "cli": "artpop-rust observe ideal",
+   "mcp_tool": "artpop_observe_ideal",
+   "inputs": "Source/scene, band, PSF optional, output zero point, star/component selection, histogram/seeing options",
+   "outputs": "Ideal observation with image and construction metadata",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "coverage.rs",
+    "harness.py",
+    "scale_cases.py",
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "observe.artificial",
+   "cli": "artpop-rust observe artificial",
+   "mcp_tool": "artpop_observe_artificial",
+   "inputs": "Source/scene, instrument, band, exposure, sky, PSF, output zero point, selections, noise seed",
+   "outputs": "Full observation planes and calibrated/expected-variance products",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "deviations.rs",
+    "harness.py",
+    "scale_cases.py",
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "observation.inspect",
+   "cli": "artpop-rust observation inspect",
+   "mcp_tool": "artpop_observation_inspect",
+   "inputs": "ID, metadata/plane/statistics selector, optional bounded cutout",
+   "outputs": "Observation metadata, plane refs, units, min/max/sums and masks",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "deviations.rs",
+    "harness.py"
+   ]
+  },
+  {
+   "operation": "image.embed",
+   "cli": "artpop-rust image embed",
+   "mcp_tool": "artpop_image_embed",
+   "inputs": "Destination/source images or shapes, center, add/replace/slices-only, clipping policy",
+   "outputs": "New image or exact overlap slices, overlap/lost-flux diagnostics; no WCS reprojection",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "image.combine",
+   "cli": "artpop-rust image combine",
+   "mcp_tool": "artpop_image_combine",
+   "inputs": "Image IDs, coefficients, explicit calibration conversion if needed",
+   "outputs": "Checked arithmetic composite; preserves unit/geometry consistency",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "coverage.rs"
+   ]
+  },
+  {
+   "operation": "image.preview",
+   "cli": "artpop-rust image preview",
+   "mcp_tool": "artpop_image_preview",
+   "inputs": "Image/observation plane, nan-percentiles, colormap, stretch, orientation, size, style",
+   "outputs": "PNG/SVG artifact with display parameters",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "image.rgb",
+   "cli": "artpop-rust image rgb",
+   "mcp_tool": "artpop_image_rgb",
+   "inputs": "Three registered planes, channel order, per-channel scaling and stretch",
+   "outputs": "Native RGB preview artifact; notebook workflow equivalent",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "plot.render",
+   "cli": "artpop-rust plot render",
+   "mcp_tool": "artpop_plot_render",
+   "inputs": "Catalog/isochrone ID, kind CMD/HR/spatial/IMF, columns/selections/axis conventions",
+   "outputs": "SVG/PNG plot artifact and plotted data reference",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "coverage.rs"
+   ]
+  },
+  {
+   "operation": "artifact.list",
+   "cli": "artpop-rust artifact list",
+   "mcp_tool": "artpop_artifact_list",
+   "inputs": "Kind/filter/page",
+   "outputs": "Retained artifact metadata; never implicit deletion",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "cli_mcp.rs"
+   ]
+  },
+  {
+   "operation": "artifact.inspect",
+   "cli": "artpop-rust artifact inspect",
+   "mcp_tool": "artpop_artifact_inspect",
+   "inputs": "ID, manifest/member selector",
+   "outputs": "Metadata, digests, schemas, shapes, units, input dependencies",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "coverage.rs"
+   ]
+  },
+  {
+   "operation": "artifact.import",
+   "cli": "artpop-rust artifact import",
+   "mcp_tool": "artpop_artifact_import",
+   "inputs": "Portable bundle/CSV/FITS plus kind/schema mapping",
+   "outputs": "Validated artifact; no arbitrary pickle execution",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "coverage.rs",
+    "test_extended_parity.py"
+   ]
+  },
+  {
+   "operation": "artifact.export",
+   "cli": "artpop-rust artifact export",
+   "mcp_tool": "artpop_artifact_export",
+   "inputs": "ID, format/member/plane, destination, overwrite false by default",
+   "outputs": "File references, hashes and bytes; FITS image selection covers upstream `image_type`",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "cli_mcp.rs",
+    "coverage.rs",
+    "harness.py",
+    "test_extended_parity.py",
+    "workflows.rs"
+   ]
+  },
+  {
+   "operation": "artifact.clone",
+   "cli": "artpop-rust artifact clone",
+   "mcp_tool": "artpop_artifact_clone",
+   "inputs": "ID, optional new label/export destination",
+   "outputs": "Immutable alias or physical export; scientific content remains identical",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "coverage.rs"
+   ]
+  },
+  {
+   "operation": "simulate.run",
+   "cli": "artpop-rust simulate run",
+   "mcp_tool": "artpop_simulate_run",
+   "inputs": "Self-contained simulation spec or typed dependency plan",
+   "outputs": "Population/source/PSF/observation refs, manifest, metrics and requested exports",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "coverage.rs"
+   ]
+  },
+  {
+   "operation": "job.submit",
+   "cli": "artpop-rust job submit",
+   "mcp_tool": "artpop_job_submit",
+   "inputs": "Producing operation ID+request, idempotency key, worker endpoint for CLI",
+   "outputs": "Durable accepted job ID; requires long-lived service",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "cli_mcp.rs"
+   ]
+  },
+  {
+   "operation": "job.status",
+   "cli": "artpop-rust job status",
+   "mcp_tool": "artpop_job_status",
+   "inputs": "Job ID",
+   "outputs": "State, stage, progress, estimates, artifact refs/error",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "cli_mcp.rs"
+   ]
+  },
+  {
+   "operation": "job.cancel",
+   "cli": "artpop-rust job cancel",
+   "mcp_tool": "artpop_job_cancel",
+   "inputs": "Job ID",
+   "outputs": "Cancellation request acknowledged; final status reports whether completion won the race",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "cli_mcp.rs"
+   ]
+  },
+  {
+   "operation": "job.result",
+   "cli": "artpop-rust job result",
+   "mcp_tool": "artpop_job_result",
+   "inputs": "Job ID",
+   "outputs": "Completed result or typed not-ready/cancelled/failed response",
+   "implementation_status": "implemented and tested (2026-10-12)",
+   "tests": [
+    "cli_mcp.rs"
+   ]
+  }
+ ]
+}

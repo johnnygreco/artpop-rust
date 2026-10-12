@@ -1,0 +1,12 @@
+{
+  "schema_version": "1",
+  "spatial_model": {
+    "kind": "sersic",
+    "effective_radius": { "value": 250, "unit": "pc" },
+    "n": 0.8,
+    "ellipticity": 0.3,
+    "theta": { "value": 135, "unit": "deg" }
+  },
+  "geometry": { "width": 701, "height": 701, "pixel_scale_arcsec": 0.2 },
+  "label_type": "phases"
+}

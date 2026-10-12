@@ -1,0 +1,22 @@
+[package]
+name = "artpop-cli"
+description = "artpop-rust command-line interface and MCP/worker entry points"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "artpop-rust"
+path = "src/main.rs"
+
+[dependencies]
+artpop-core.workspace = true
+artpop-service.workspace = true
+artpop-mcp.workspace = true
+clap = { version = "4.6", features = ["derive"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+
+[dev-dependencies]
+rmcp = { version = "3.5", default-features = false, features = ["client", "transport-child-process"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "process"] }

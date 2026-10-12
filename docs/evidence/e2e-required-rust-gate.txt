@@ -1,0 +1,2 @@
+ERROR: --require-rust requires --rust-bin; skipped comparisons are not release parity evidence
+

@@ -1,0 +1,187 @@
+{
+  "schema_version": "1",
+  "measurement": "fresh-process end-to-end workflows including input parsing, initialization, compute, and output export; input generation and validation excluded",
+  "memory_method": "10ms Linux process-tree RSS sampling; shared pages can be double-counted; short peaks can be missed; null on other platforms",
+  "python": "3.10.12 (main, Aug 31 2026, 10:18:17) [GCC 11.4.0]",
+  "platform": "Linux-6.8.0-1069-gcp-x86_64-with-glibc2.35",
+  "machine": "x86_64",
+  "cpu": "AMD EPYC 7B13",
+  "logical_cpus": 4,
+  "upstream_commit": "38a886906ed175d0205bf48b6dc03f54aeb4a81a",
+  "packages": {
+    "numpy": "2.2.6",
+    "scipy": "1.15.3",
+    "astropy": "6.1.7",
+    "fast-histogram": "0.14"
+  },
+  "count": 100000,
+  "warmup": 1,
+  "repeat": 3,
+  "input_manifest": {
+    "upstream_commit": "38a886906ed175d0205bf48b6dc03f54aeb4a81a",
+    "files": {
+      "catalog.csv": "5ac68117f91949a903c54d4fb02ba5b8d35cbb5f2ef7eb9d8d6017e922b7afc3",
+      "isochrone.csv": "73e9223d50b768b502d1a712627d0ae3dcea124abffc89cbd84be2eb68498f31",
+      "input.json": "e366d81d4da498f03775008e7ae6dd0d4788a8b36c29d5a6fed4652e1a025f1e"
+    }
+  },
+  "rust_binary": null,
+  "cases": {
+    "histogram": {
+      "python": {
+        "median_seconds": 1.254809257981833,
+        "min_seconds": 1.2470551790029276,
+        "max_seconds": 1.2855442379950546,
+        "median_sampled_peak_tree_rss_bytes": 142159872,
+        "samples": [
+          {
+            "wall_seconds": 1.2470551790029276,
+            "sampled_peak_tree_rss_bytes": 142483456,
+            "validation": {},
+            "output_bytes": 167106
+          },
+          {
+            "wall_seconds": 1.2855442379950546,
+            "sampled_peak_tree_rss_bytes": 142159872,
+            "validation": {},
+            "output_bytes": 167106
+          },
+          {
+            "wall_seconds": 1.254809257981833,
+            "sampled_peak_tree_rss_bytes": 141942784,
+            "validation": {},
+            "output_bytes": 167106
+          }
+        ]
+      }
+    },
+    "ideal": {
+      "python": {
+        "median_seconds": 1.2739223589887843,
+        "min_seconds": 1.273848527984228,
+        "max_seconds": 1.2977036189986393,
+        "median_sampled_peak_tree_rss_bytes": 146624512,
+        "samples": [
+          {
+            "wall_seconds": 1.2977036189986393,
+            "sampled_peak_tree_rss_bytes": 146616320,
+            "validation": {},
+            "output_bytes": 167102
+          },
+          {
+            "wall_seconds": 1.2739223589887843,
+            "sampled_peak_tree_rss_bytes": 146624512,
+            "validation": {},
+            "output_bytes": 167102
+          },
+          {
+            "wall_seconds": 1.273848527984228,
+            "sampled_peak_tree_rss_bytes": 146849792,
+            "validation": {},
+            "output_bytes": 167102
+          }
+        ]
+      }
+    },
+    "detector": {
+      "python": {
+        "median_seconds": 1.30254352799966,
+        "min_seconds": 1.2676717180002015,
+        "max_seconds": 1.3025590189790819,
+        "median_sampled_peak_tree_rss_bytes": 145096704,
+        "samples": [
+          {
+            "wall_seconds": 1.30254352799966,
+            "sampled_peak_tree_rss_bytes": 144904192,
+            "validation": {
+              "standardized_mean": 0.002048899020426015,
+              "standardized_second_moment": 0.9949188344541342
+            },
+            "output_bytes": 501283
+          },
+          {
+            "wall_seconds": 1.2676717180002015,
+            "sampled_peak_tree_rss_bytes": 145166336,
+            "validation": {
+              "standardized_mean": 0.002048899020426015,
+              "standardized_second_moment": 0.9949188344541342
+            },
+            "output_bytes": 501283
+          },
+          {
+            "wall_seconds": 1.3025590189790819,
+            "sampled_peak_tree_rss_bytes": 145096704,
+            "validation": {
+              "standardized_mean": 0.002048899020426015,
+              "standardized_second_moment": 0.9949188344541342
+            },
+            "output_bytes": 501283
+          }
+        ]
+      }
+    },
+    "population": {
+      "python": {
+        "median_seconds": 1.53434915698017,
+        "min_seconds": 1.53197558602551,
+        "max_seconds": 1.5387412059935741,
+        "median_sampled_peak_tree_rss_bytes": 150806528,
+        "samples": [
+          {
+            "wall_seconds": 1.53434915698017,
+            "sampled_peak_tree_rss_bytes": 150806528,
+            "validation": {},
+            "output_bytes": 7755832
+          },
+          {
+            "wall_seconds": 1.53197558602551,
+            "sampled_peak_tree_rss_bytes": 150786048,
+            "validation": {},
+            "output_bytes": 7755832
+          },
+          {
+            "wall_seconds": 1.5387412059935741,
+            "sampled_peak_tree_rss_bytes": 151191552,
+            "validation": {},
+            "output_bytes": 7755832
+          }
+        ]
+      }
+    },
+    "grid": {
+      "python": {
+        "median_seconds": 1.3344193079974502,
+        "min_seconds": 1.3108654789975844,
+        "max_seconds": 1.389875357010169,
+        "median_sampled_peak_tree_rss_bytes": 142598144,
+        "samples": [
+          {
+            "wall_seconds": 1.3344193079974502,
+            "sampled_peak_tree_rss_bytes": 142598144,
+            "validation": {
+              "grid_chisquare_pvalue": 0.13119387198193125
+            },
+            "output_bytes": 400065
+          },
+          {
+            "wall_seconds": 1.3108654789975844,
+            "sampled_peak_tree_rss_bytes": 142528512,
+            "validation": {
+              "grid_chisquare_pvalue": 0.13119387198193125
+            },
+            "output_bytes": 400065
+          },
+          {
+            "wall_seconds": 1.389875357010169,
+            "sampled_peak_tree_rss_bytes": 142741504,
+            "validation": {
+              "grid_chisquare_pvalue": 0.13119387198193125
+            },
+            "output_bytes": 400065
+          }
+        ]
+      }
+    }
+  },
+  "speedups": null
+}

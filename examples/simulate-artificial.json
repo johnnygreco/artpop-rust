@@ -1,0 +1,29 @@
+{
+  "schema_version": "1",
+  "population": {
+    "normalization": { "kind": "current_mass", "value": 1e7, "unit": "Msun" },
+    "imf": { "kind": "kroupa" },
+    "distance": { "value": 5, "unit": "Mpc" },
+    "mag_limit": { "magnitude": 29.0, "band": "LSST_i" }
+  },
+  "source": {
+    "spatial_model": {
+      "kind": "sersic",
+      "effective_radius": { "value": 250, "unit": "pc" },
+      "n": 0.8,
+      "ellipticity": 0.3,
+      "theta": { "value": 135, "unit": "deg" }
+    },
+    "geometry": { "width": 701, "height": 701, "pixel_scale_arcsec": 0.2 }
+  },
+  "psf": { "kind": "moffat", "fwhm": { "value": 0.6, "unit": "arcsec" }, "width": 41, "height": 41 },
+  "instrument": { "kind": "physical", "photometric_systems": ["LSST"], "diameter": { "value": 6.4, "unit": "m" }, "read_noise_electrons": 4 },
+  "observations": [
+    { "bandpass": "LSST_g", "exposure_s": 900, "sky_sb_mag_arcsec2": 22 },
+    { "bandpass": "LSST_r", "exposure_s": 900, "sky_sb_mag_arcsec2": 21 },
+    { "bandpass": "LSST_i", "exposure_s": 1800, "sky_sb_mag_arcsec2": 20 }
+  ],
+  "render": { "kind": "artificial", "boundary": "wrap", "output_zpt": 27 },
+  "outputs": { "export_formats": ["fits", "png"], "include_variance": true },
+  "execution": { "seed": "0000000000000064" }
+}

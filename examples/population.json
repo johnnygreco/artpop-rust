@@ -1,0 +1,9 @@
+{
+  "schema_version": "1",
+  "normalization": { "kind": "current_mass", "value": 1e6, "unit": "Msun" },
+  "imf": { "kind": "kroupa" },
+  "distance": { "value": 5, "unit": "Mpc" },
+  "extinction_mag": { "LSST_g": 0.06, "LSST_r": 0.04, "LSST_i": 0.03 },
+  "mag_limit": { "magnitude": 28.0, "band": "LSST_i" },
+  "label": "dwarf"
+}
