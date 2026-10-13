@@ -472,6 +472,56 @@ impl Loaded {
         Ok(out)
     }
 
+    /// Stream an f64 member's little-endian bytes to `sink` in chunks while
+    /// verifying its length and digest; the next chunk is read and the digest
+    /// updated concurrently with the sink. Returns an error if verification
+    /// fails (the caller must discard whatever the sink produced).
+    pub fn stream_f64_bytes(&self, name: &str, mut sink: impl FnMut(&[u8]) -> Result<()> + Send) -> Result<()> {
+        let info = self.info(name)?;
+        if info.dtype != DType::F64 {
+            return Err(Error::new(ErrorCode::DataCorrupt, format!("Member '{name}' has dtype {:?}, expected F64.", info.dtype)));
+        }
+        if info.file.contains('/') || info.file.contains('\\') || info.file.contains("..") || info.bytes % 8 != 0 {
+            return Err(Error::new(ErrorCode::DataCorrupt, "Artifact member is malformed."));
+        }
+        use std::io::Read;
+        let p = self.dir.join(&info.file);
+        let mut f = std::fs::File::open(&p).map_err(|e| io_err(e, "Cannot read", &p))?;
+        const CHUNK: usize = 8 << 20;
+        let total = info.bytes as usize;
+        let mut cur = vec![0u8; CHUNK.min(total)];
+        let mut next = vec![0u8; CHUNK.min(total)];
+        let mut hasher = Sha256::new();
+        let mut cur_len = total.min(CHUNK);
+        f.read_exact(&mut cur[..cur_len]).map_err(|e| io_err(e, "Cannot read", &p))?;
+        let mut remaining = total - cur_len;
+        loop {
+            let next_len = remaining.min(CHUNK);
+            let (read, (_, sunk)) = rayon::join(
+                || if next_len > 0 { f.read_exact(&mut next[..next_len]) } else { Ok(()) },
+                || rayon::join(|| hasher.update(&cur[..cur_len]), || sink(&cur[..cur_len])),
+            );
+            read.map_err(|e| io_err(e, "Cannot read", &p))?;
+            sunk?;
+            if next_len == 0 {
+                break;
+            }
+            remaining -= next_len;
+            std::mem::swap(&mut cur, &mut next);
+            cur_len = next_len;
+        }
+        let mut extra = [0u8; 1];
+        let digest = hasher.finalize();
+        let mut hex = String::with_capacity(64);
+        for b in digest {
+            hex.push_str(&format!("{b:02x}"));
+        }
+        if f.read(&mut extra).map_err(|e| io_err(e, "Cannot read", &p))? != 0 || hex != info.sha256 {
+            return Err(Error::new(ErrorCode::DataCorrupt, format!("Member '{name}' of {} failed its length/digest check.", self.manifest.artifact_id)));
+        }
+        Ok(())
+    }
+
     /// Read and verify several f64 members in parallel.
     pub fn f64s_many(&self, names: &[String]) -> Result<Vec<Vec<f64>>> {
         use rayon::prelude::*;

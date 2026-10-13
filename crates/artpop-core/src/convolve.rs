@@ -235,6 +235,8 @@ fn fft_tiled(image: &Image, k: &Image, boundary: Boundary) -> Image {
         }
     };
     let mut out = Image::zeros(image.width, image.height);
+    // Adjacent tiles share huge pages and are written concurrently.
+    crate::mem::prefault(&mut out.data);
     let out_ptr = OutPtr(out.data.as_mut_ptr());
     let kspec = &kspec;
     tiles

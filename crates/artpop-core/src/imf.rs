@@ -411,6 +411,15 @@ pub fn build_to_mass(
         k.push(&label);
         masses.extend(sampler.sample(batch as usize, seed, stage, &k));
         draws += batch;
+        if batches == 1 && masses.capacity() < masses.len() * 2 {
+            // Reserve the expected final size from the first batch's mean
+            // mass so later batches do not repeatedly regrow the vector.
+            let mean = masses.iter().sum::<f64>() / masses.len() as f64;
+            if mean.is_finite() && mean > 0.0 {
+                let expected = ((target / mean) * 1.1) as usize + batch as usize;
+                masses.reserve(expected.saturating_sub(masses.len()).min(max_stars as usize));
+            }
+        }
         match policy {
             StoppingPolicy::WholeBatch => {
                 total += masses[start..].iter().sum::<f64>();

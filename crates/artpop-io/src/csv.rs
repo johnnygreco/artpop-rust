@@ -45,46 +45,65 @@ pub enum Delimiter {
 /// Bytes per parallel parsing chunk (chunks end at a newline).
 const CHUNK_BYTES: usize = 1 << 18;
 
-/// Parse one token as `f64`; whitespace around a token is tolerated.
-#[inline]
-fn parse_token(tok: &str) -> Option<f64> {
-    tok.parse::<f64>().ok().or_else(|| tok.trim().parse::<f64>().ok())
+/// A parse failure inside one chunk, with the line offset within the chunk;
+/// the absolute line number is resolved by the caller (only on error).
+enum BodyError {
+    TooManyValues { rel_line: usize },
+    NotANumber { rel_line: usize, token: String, column: usize },
+    WrongCount { rel_line: usize, count: usize },
 }
 
-/// Parse the data lines of `body` (whose first line is line number `first_line`,
-/// 1-based) into per-column vectors.
-fn parse_body(body: &str, first_line: usize, delim: Delimiter, columns: &[String]) -> Result<Vec<Vec<f64>>> {
-    let ncol = columns.len();
-    let mut data = vec![Vec::new(); ncol];
-    for (k, line) in body.lines().enumerate() {
-        let n = first_line + k;
+/// Parsed columns of one chunk and the number of lines it contained.
+type ChunkResult = std::result::Result<(Vec<Vec<f64>>, usize), BodyError>;
+
+/// Parse the data lines of one chunk into per-column vectors; returns the
+/// columns and the number of lines in the chunk.
+fn parse_body(body: &str, delim: Delimiter, ncol: usize) -> ChunkResult {
+    // Pre-size for about one value per 20 bytes.
+    let guess = body.len() / (20 * ncol.max(1)) + 16;
+    let mut data: Vec<Vec<f64>> = (0..ncol).map(|_| Vec::with_capacity(guess)).collect();
+    let mut lines = 0usize;
+    for (rel_line, line) in body.lines().enumerate() {
+        lines += 1;
         let t = line.trim();
         if t.is_empty() || t.starts_with('#') {
             continue;
         }
-        let mut count = 0;
-        let mut push = |tok: &str| -> Result<()> {
+        let mut count = 0usize;
+        let mut push = |tok: &str, data: &mut Vec<Vec<f64>>| -> std::result::Result<(), BodyError> {
             if count >= ncol {
-                return Err(Error::new(ErrorCode::DataCorrupt, format!("Line {n} has more than {ncol} values.")).with_details(serde_json::json!({ "line": n })));
+                return Err(BodyError::TooManyValues { rel_line });
             }
-            let v = parse_token(tok).ok_or_else(|| {
-                Error::new(ErrorCode::DataCorrupt, format!("Line {n}: '{}' is not a number (column '{}').", tok.trim(), columns[count]))
-                    .with_details(serde_json::json!({ "line": n, "column": columns[count] }))
-            })?;
+            let v = match tok.parse::<f64>() {
+                Ok(v) => v,
+                Err(_) => tok.trim().parse::<f64>().map_err(|_| BodyError::NotANumber { rel_line, token: tok.trim().to_string(), column: count })?,
+            };
             data[count].push(v);
             count += 1;
             Ok(())
         };
         match delim {
-            Delimiter::Comma => t.split(',').try_for_each(&mut push)?,
-            Delimiter::Whitespace => t.split_whitespace().try_for_each(&mut push)?,
-            Delimiter::Char(c) => t.split(c).try_for_each(&mut push)?,
+            Delimiter::Comma => {
+                for tok in t.split(',') {
+                    push(tok, &mut data)?;
+                }
+            }
+            Delimiter::Whitespace => {
+                for tok in t.split_whitespace() {
+                    push(tok, &mut data)?;
+                }
+            }
+            Delimiter::Char(c) => {
+                for tok in t.split(c) {
+                    push(tok, &mut data)?;
+                }
+            }
         }
         if count != ncol {
-            return Err(Error::new(ErrorCode::DataCorrupt, format!("Line {n} has {count} values; expected {ncol}.")).with_details(serde_json::json!({ "line": n })));
+            return Err(BodyError::WrongCount { rel_line, count });
         }
     }
-    Ok(data)
+    Ok((data, lines))
 }
 
 /// Parse a numeric table. The first non-comment line is the header (a leading
@@ -123,10 +142,10 @@ pub fn parse(text: &str, delimiter: Option<Delimiter>) -> Result<Table> {
     }
     let body = &text[offset..];
     let ncol = columns.len();
-    // Chunk boundaries at newlines, with the 1-based line number of each chunk's first line.
-    let mut chunks: Vec<(usize, &str)> = Vec::new();
+    // Newline-aligned chunks; line numbers are resolved from the chunks' own
+    // line counts, so no separate counting pass is needed.
+    let mut chunks: Vec<&str> = Vec::new();
     let mut start = 0usize;
-    let mut first_line = hline + 1;
     while start < body.len() {
         let mut end = (start + CHUNK_BYTES).min(body.len());
         if end < body.len() {
@@ -135,21 +154,41 @@ pub fn parse(text: &str, delimiter: Option<Delimiter>) -> Result<Table> {
                 None => end = body.len(),
             }
         }
-        let piece = &body[start..end];
-        chunks.push((first_line, piece));
-        first_line += piece.bytes().filter(|b| *b == b'\n').count();
+        chunks.push(&body[start..end]);
         start = end;
     }
-    let parsed: Vec<Result<Vec<Vec<f64>>>> = chunks.par_iter().map(|(first, piece)| parse_body(piece, *first, delim, &columns)).collect();
+    let parsed: Vec<ChunkResult> = chunks.par_iter().map(|piece| parse_body(piece, delim, ncol)).collect();
     // Errors are reported for the earliest failing line, as a sequential parse would.
     let mut data: Vec<Vec<f64>> = vec![Vec::new(); ncol];
+    let mut first_line = hline + 1;
     for part in parsed {
-        let part = part?;
-        for (dst, src) in data.iter_mut().zip(part) {
-            if dst.is_empty() {
-                *dst = src;
-            } else {
-                dst.extend_from_slice(&src);
+        match part {
+            Ok((cols, lines)) => {
+                for (dst, src) in data.iter_mut().zip(cols) {
+                    if dst.is_empty() {
+                        *dst = src;
+                    } else {
+                        dst.extend_from_slice(&src);
+                    }
+                }
+                first_line += lines;
+            }
+            Err(e) => {
+                return Err(match e {
+                    BodyError::TooManyValues { rel_line } => {
+                        let n = first_line + rel_line;
+                        Error::new(ErrorCode::DataCorrupt, format!("Line {n} has more than {ncol} values.")).with_details(serde_json::json!({ "line": n }))
+                    }
+                    BodyError::NotANumber { rel_line, token, column } => {
+                        let n = first_line + rel_line;
+                        Error::new(ErrorCode::DataCorrupt, format!("Line {n}: '{token}' is not a number (column '{}').", columns[column]))
+                            .with_details(serde_json::json!({ "line": n, "column": columns[column] }))
+                    }
+                    BodyError::WrongCount { rel_line, count } => {
+                        let n = first_line + rel_line;
+                        Error::new(ErrorCode::DataCorrupt, format!("Line {n} has {count} values; expected {ncol}.")).with_details(serde_json::json!({ "line": n }))
+                    }
+                });
             }
         }
     }
@@ -232,37 +271,71 @@ impl Column<'_> {
     }
 }
 
+/// Rows per formatted block.
+const ROWS_PER_BLOCK: usize = 1 << 12;
+/// Blocks formatted per wave; a wave is handed to the sink while the next is formatted.
+const BLOCKS_PER_WAVE: usize = 16;
+
+fn format_block(cols: &[Column<'_>], start: usize, end: usize) -> String {
+    let mut out = String::with_capacity((end - start) * cols.len() * 20);
+    let mut buf = ryu::Buffer::new();
+    let mut ibuf = itoa::Buffer::new();
+    for r in start..end {
+        for (c, col) in cols.iter().enumerate() {
+            if c > 0 {
+                out.push(',');
+            }
+            col.write_cell(r, &mut out, &mut buf, &mut ibuf);
+        }
+        out.push('\n');
+    }
+    out
+}
+
 /// Render typed columns as CSV text (header row, `,` separator, `\n` line
 /// ends), formatting row blocks in parallel.
 pub fn write_columns(names: &[String], cols: &[Column<'_>]) -> String {
-    let rows = cols.first().map_or(0, |c| c.len());
-    const ROWS_PER_BLOCK: usize = 1 << 14;
-    let blocks: Vec<String> = (0..rows.div_ceil(ROWS_PER_BLOCK))
-        .into_par_iter()
-        .map(|b| {
-            let (start, end) = (b * ROWS_PER_BLOCK, ((b + 1) * ROWS_PER_BLOCK).min(rows));
-            let mut out = String::with_capacity((end - start) * cols.len() * 20);
-            let mut buf = ryu::Buffer::new();
-            let mut ibuf = itoa::Buffer::new();
-            for r in start..end {
-                for (c, col) in cols.iter().enumerate() {
-                    if c > 0 {
-                        out.push(',');
-                    }
-                    col.write_cell(r, &mut out, &mut buf, &mut ibuf);
-                }
-                out.push('\n');
-            }
-            out
-        })
-        .collect();
-    let mut text = String::with_capacity(blocks.iter().map(String::len).sum::<usize>() + names.iter().map(|n| n.len() + 1).sum::<usize>() + 1);
-    text.push_str(&names.join(","));
-    text.push('\n');
-    for b in blocks {
-        text.push_str(&b);
-    }
+    let mut text = String::new();
+    write_columns_to(names, cols, |piece| {
+        text.push_str(std::str::from_utf8(piece).expect("csv text"));
+        Ok(())
+    })
+    .expect("infallible sink");
     text
+}
+
+/// Render typed columns as CSV and hand the text to `sink` in order, in
+/// pieces: the header first, then waves of row blocks. Each wave is sunk
+/// (for example written and hashed) while the next wave is being formatted
+/// on the other threads. The concatenation of the pieces equals
+/// [`write_columns`].
+pub fn write_columns_to(names: &[String], cols: &[Column<'_>], mut sink: impl FnMut(&[u8]) -> Result<()> + Send) -> Result<()> {
+    let rows = cols.first().map_or(0, |c| c.len());
+    let mut header = names.join(",");
+    header.push('\n');
+    sink(header.as_bytes())?;
+    let blocks = rows.div_ceil(ROWS_PER_BLOCK);
+    let format_wave = |first_block: usize| -> Vec<String> {
+        let last_block = (first_block + BLOCKS_PER_WAVE).min(blocks);
+        (first_block..last_block).into_par_iter().map(|b| format_block(cols, b * ROWS_PER_BLOCK, ((b + 1) * ROWS_PER_BLOCK).min(rows))).collect()
+    };
+    let mut pending = format_wave(0);
+    let mut next_first = BLOCKS_PER_WAVE;
+    while !pending.is_empty() {
+        let (sunk, formatted) = rayon::join(
+            || -> Result<()> {
+                for b in &pending {
+                    sink(b.as_bytes())?;
+                }
+                Ok(())
+            },
+            || if next_first < blocks { format_wave(next_first) } else { Vec::new() },
+        );
+        sunk?;
+        pending = formatted;
+        next_first += BLOCKS_PER_WAVE;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -312,8 +385,9 @@ mod tests {
         let t = parse(&text, None).unwrap();
         assert_eq!(t.rows(), n);
         assert_eq!(t.data, cols);
-        let seq = parse_body(&text[6..], 2, Delimiter::Comma, &t.columns).unwrap();
+        let (seq, lines) = parse_body(&text[6..], Delimiter::Comma, 3).ok().unwrap();
         assert_eq!(seq, t.data);
+        assert_eq!(lines, n);
         // Two bad lines in different chunks: the earlier one is reported.
         let mut lines: Vec<&str> = text.lines().collect();
         lines[70_000] = "1,2,x";
@@ -321,6 +395,24 @@ mod tests {
         let bad = lines.join("\n");
         let e = parse(&bad, None).unwrap_err();
         assert_eq!(e.details["line"], 20_001);
+    }
+
+    #[test]
+    fn streamed_csv_equals_whole_text() {
+        let n = 3 * ROWS_PER_BLOCK * BLOCKS_PER_WAVE + 1234;
+        let f: Vec<f64> = (0..n).map(|i| i as f64 * 0.1234567).collect();
+        let u: Vec<u64> = (0..n as u64).collect();
+        let names = vec!["f".to_string(), "u".to_string()];
+        let cols = [Column::f64s(&f[..]), Column::u64s(&u[..])];
+        let whole = write_columns(&names, &cols);
+        let mut streamed = Vec::new();
+        write_columns_to(&names, &cols, |p| {
+            streamed.extend_from_slice(p);
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(whole.as_bytes(), &streamed[..]);
+        assert_eq!(whole.lines().count(), n + 1);
     }
 
     #[test]

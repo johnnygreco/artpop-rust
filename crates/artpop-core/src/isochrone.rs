@@ -23,6 +23,38 @@ pub struct Isochrone {
     pub metadata: serde_json::Value,
 }
 
+/// Search hint for `partition_point(|v| v <= m)` on a sorted mass table:
+/// `guide[g]` is the number of rows with mass `<= lo + g * step`, so the
+/// answer for a query in bin `g` lies between `guide[g]` and `guide[g + 1]`.
+/// The lookup is widened by one bin on each side so that rounding in the bin
+/// computation can never exclude the answer; results are exactly those of a
+/// full binary search.
+struct MassGuide {
+    lo: f64,
+    inv_step: f64,
+    bins: usize,
+    guide: Vec<u32>,
+}
+
+impl MassGuide {
+    fn new(x: &[f64]) -> MassGuide {
+        let (lo, hi) = (x[0], x[x.len() - 1]);
+        let bins = (2 * x.len()).clamp(1, 1 << 14);
+        let step = if hi > lo { (hi - lo) / bins as f64 } else { 1.0 };
+        let guide = (0..=bins).map(|g| x.partition_point(|v| *v <= lo + g as f64 * step) as u32).collect();
+        MassGuide { lo, inv_step: 1.0 / step, bins, guide }
+    }
+
+    /// Number of table values `<= m` (`m` within the table range).
+    #[inline]
+    fn count_le(&self, x: &[f64], m: f64) -> usize {
+        let g = (((m - self.lo) * self.inv_step) as usize).min(self.bins - 1);
+        let lo = self.guide[g.saturating_sub(1)] as usize;
+        let hi = (self.guide[(g + 2).min(self.bins)] as usize).min(x.len());
+        lo + x[lo..hi].partition_point(|v| *v <= m)
+    }
+}
+
 /// Remnant mass prescription (Renzini & Ciotti 1993 as used by ArtPop).
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, schemars::JsonSchema)]
 #[serde(deny_unknown_fields, default)]
@@ -202,7 +234,10 @@ impl Isochrone {
         if let Some(m) = masses.iter().find(|m| !(**m >= lo && **m <= hi)) {
             return Err(Error::domain("/initial_mass", format!("Mass {m} lies outside the isochrone range [{lo}, {hi}].")));
         }
-        // Bracket: (j, exact) with exact meaning "return column[j]".
+        // Bracket: (j, exact) with exact meaning "return column[j]". A guide
+        // table over uniform mass bins bounds each binary search to the few
+        // rows of one bin; the result is the same row a full search returns.
+        let guide = MassGuide::new(x);
         let brackets: Vec<(u32, bool)> = masses
             .par_iter()
             .with_min_len(4096)
@@ -210,28 +245,31 @@ impl Isochrone {
                 if m == x[n - 1] {
                     return ((n - 1) as u32, true);
                 }
-                let j = x.partition_point(|v| *v <= m) - 1;
+                let j = guide.count_le(x, m) - 1;
                 (j as u32, m == x[j])
             })
             .collect();
-        let eval = |y: &[f64], (j, exact): (u32, bool), m: f64| -> f64 {
-            let j = j as usize;
-            if exact {
-                return y[j];
-            }
-            let slope = (y[j + 1] - y[j]) / (x[j + 1] - x[j]);
-            let r = slope * (m - x[j]) + y[j];
-            if r.is_nan() { np_interp(x, y, m) } else { r }
-        };
         // Columns in parallel, and within a column parallel chunks; each value
         // depends only on its own bracket, so the result is order-independent.
+        // The segment slope `(y[j+1] - y[j]) / (x[j+1] - x[j])` is the same
+        // IEEE quotient for every star in a segment, so it is computed once
+        // per row instead of once per star (identical bits).
         Ok(columns
             .par_iter()
             .map(|y| {
+                let slopes: Vec<f64> = (0..n - 1).map(|j| (y[j + 1] - y[j]) / (x[j + 1] - x[j])).collect();
+                let eval = |(j, exact): (u32, bool), m: f64| -> f64 {
+                    let j = j as usize;
+                    if exact {
+                        return y[j];
+                    }
+                    let r = slopes[j] * (m - x[j]) + y[j];
+                    if r.is_nan() { np_interp(x, y, m) } else { r }
+                };
                 let mut out = crate::mem::zeroed_f64(masses.len());
                 out.par_chunks_mut(crate::mem::PAR_CHUNK).zip(brackets.par_chunks(crate::mem::PAR_CHUNK)).zip(masses.par_chunks(crate::mem::PAR_CHUNK)).for_each(|((o, br), ms)| {
                     for ((v, b), m) in o.iter_mut().zip(br).zip(ms) {
-                        *v = eval(y, *b, *m);
+                        *v = eval(*b, *m);
                     }
                 });
                 out
@@ -435,6 +473,31 @@ pub(crate) mod tests {
         let rem = RemnantModel::default();
         assert!((iso.ssp_surviving_mass(&s, None, None, Some(&rem)).unwrap().total - 0.7014041).abs() < 5e-8);
         assert!((iso.ssp_surviving_mass(&s, None, None, None).unwrap().total - 0.5809369).abs() < 5e-8);
+    }
+
+    #[test]
+    fn mass_guide_matches_full_binary_search() {
+        let iso = fixture();
+        let x = &iso.initial_mass;
+        let guide = MassGuide::new(x);
+        let mut st = crate::rng::Seed(6).stream("guide", &[]);
+        for _ in 0..300_000 {
+            let m = st.uniform_range(iso.m_min(), iso.m_max());
+            assert_eq!(guide.count_le(x, m), x.partition_point(|v| *v <= m));
+        }
+        for &m in x.iter().chain([iso.m_min(), iso.m_max()].iter()) {
+            assert_eq!(guide.count_le(x, m), x.partition_point(|v| *v <= m));
+            let up = f64::from_bits(m.to_bits() + 1).min(iso.m_max());
+            let down = f64::from_bits(m.to_bits() - 1).max(iso.m_min());
+            assert_eq!(guide.count_le(x, up), x.partition_point(|v| *v <= up));
+            assert_eq!(guide.count_le(x, down), x.partition_point(|v| *v <= down));
+        }
+        // Duplicate masses and a tiny table.
+        let dup = [0.1, 0.2, 0.2, 0.2, 0.5, 0.9, 0.9];
+        let g = MassGuide::new(&dup);
+        for m in [0.1, 0.15, 0.2, 0.2000001, 0.5, 0.7, 0.9] {
+            assert_eq!(g.count_le(&dup, m), dup.partition_point(|v| *v <= m));
+        }
     }
 
     #[test]

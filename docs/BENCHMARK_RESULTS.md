@@ -1,20 +1,20 @@
 # Benchmark results: ArtPop 0.1.2 vs artpop-rust
 
-Measured on 2026-10-12 with [`validation/benchmark.py`](../validation/benchmark.py) (five reference workflows at 100,000 stars) and [`validation/scale_benchmark.py`](../validation/scale_benchmark.py) (six larger workflows, including one that is compute-bound in Python). Raw samples: [rust-vs-python-benchmark.json](evidence/rust-vs-python-benchmark.json), [rust-vs-python-scale-benchmark.json](evidence/rust-vs-python-scale-benchmark.json). The first optimization round's reports are kept as [round1-rust-vs-python-benchmark.json](evidence/round1-rust-vs-python-benchmark.json) and [round1-rust-vs-python-scale-benchmark.json](evidence/round1-rust-vs-python-scale-benchmark.json).
+Measured on 2026-10-13 with [`validation/benchmark.py`](../validation/benchmark.py) (five reference workflows at 100,000 stars) and [`validation/scale_benchmark.py`](../validation/scale_benchmark.py) (six larger workflows, including one that is compute-bound in Python). Raw samples: [rust-vs-python-benchmark.json](evidence/rust-vs-python-benchmark.json), [rust-vs-python-scale-benchmark.json](evidence/rust-vs-python-scale-benchmark.json). The earlier optimization rounds' reports are kept as [round1-rust-vs-python-benchmark.json](evidence/round1-rust-vs-python-benchmark.json), [round1-rust-vs-python-scale-benchmark.json](evidence/round1-rust-vs-python-scale-benchmark.json), and the `round2-*` counterparts.
 
 ## Results
 
-Environment: AMD EPYC 7B13, 4 logical CPUs, Linux 6.8 (x86_64, glibc 2.35, transparent huge pages in `madvise` mode). Python 3.10.12 with NumPy 2.2.6, SciPy 1.15.3, Astropy 6.1.7, fast-histogram 0.14, and ArtPop at `38a8869`. Rust: `artpop-rust 0.1.0` release build (thin LTO), binary SHA-256 `2acdfcb0d94d127c7d6beaf129da75f2fe742a7fdc237286275558b8fbc6398c`, the same binary for both reports. The final build (`2bd6a1f7d0f3e1f61b47be396ba2c80f9759e65f54f02a7b37d6cd0eeb0f0a2a`) differs from it only by the job-submission race fix in `jobs.rs` (see [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md#known-limitations)); the Rust test, parity, and bit-identity evidence were recorded on the final build, which reproduces every round-1 artifact ID and exported file byte for byte. (`cargo test --release` re-links that same source with different crate metadata; the plain `cargo build --release` output hashes to `b549543787e8a6bbe431967dbec5c8a79132056ab272f4e971fc3f5e3f73404e` and was also verified to reproduce all round-1 outputs.) The run started at a 1-minute load of 0.65 on the otherwise idle VM; the load averages below were sampled during the run and mostly reflect the benchmark's own processes.
+Environment: AMD EPYC 7B13, 4 logical CPUs, Linux 6.8 (x86_64, glibc 2.35, transparent huge pages in `madvise` mode). Python 3.10.12 with NumPy 2.2.6, SciPy 1.15.3, Astropy 6.1.7, fast-histogram 0.14, and ArtPop at `38a8869`. Rust: `artpop-rust 0.1.0` release build (thin LTO), binary SHA-256 `452e8d243685696f9d3b3b0c1cf6c0a1c4bf32ac4b7532f8627abd69e236401c`: the same `cargo build --release` binary for both reports, the Rust test and parity evidence, and the bit-identity check, which found every round-1 artifact ID and exported file reproduced byte for byte. The run started at a 1-minute load of 1.10 (the parity suite had just finished); the load averages below were sampled during the run and mostly reflect the benchmark's own processes. The MIST cutoff case's samples ran while the previous case's processes were still being reaped and both backends measured about 15% slower there than in round 2, so its row should be read as a ratio.
 
 ### Five reference workflows (100,000 stars or draws)
 
 | Workflow | Python median (range) | Rust median (range) | Speedup | Python RSS MiB | Rust RSS MiB | Load avg during samples |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Catalog (100k) → count histogram → FITS | 1.269 s (1.247–1.318) | 0.075 s (0.073–0.086) | 17.0× | 136 | 32 | 0.79–0.83 |
-| Catalog (100k) → Moffat PSF → ideal image → FITS | 1.337 s (1.283–1.341) | 0.097 s (0.094–0.106) | 13.8× | 140 | 33 | 1.06–1.08 |
-| Catalog (100k) → detector noise → three FITS planes | 1.294 s (1.293–1.314) | 0.107 s (0.106–0.109) | 12.1× | 139 | 32 | 1.53–1.86 |
-| Isochrone → 100k-star SSP → CSV + photometry | 1.622 s (1.576–1.725) | 0.129 s (0.128–0.139) | 12.6× | 144 | 35 | 1.65–1.91 |
-| 7×7 weights → 100k positions → CSV | 1.384 s (1.334–1.430) | 0.074 s (0.073–0.084) | 18.6× | 136 | 26 | 1.50–1.70 |
+| Catalog (100k) → count histogram → FITS | 1.266 s (1.254–1.295) | 0.074 s (0.073–0.075) | 17.2× | 136 | 33 | 1.06–1.09 |
+| Catalog (100k) → Moffat PSF → ideal image → FITS | 1.302 s (1.269–1.521) | 0.095 s (0.095–0.095) | 13.8× | 140 | 33 | 1.04–1.06 |
+| Catalog (100k) → detector noise → three FITS planes | 1.304 s (1.255–1.347) | 0.105 s (0.104–0.105) | 12.4× | 139 | 33 | 0.96–1.24 |
+| Isochrone → 100k-star SSP → CSV + photometry | 1.545 s (1.527–1.585) | 0.117 s (0.116–0.127) | 13.2× | 145 | 33 | 1.26–1.52 |
+| 7×7 weights → 100k positions → CSV | 1.358 s (1.327–1.375) | 0.073 s (0.073–0.075) | 18.5× | 136 | 26 | 1.34–1.40 |
 
 Medians of 5 samples after 1 warmup per backend. All 50 measured samples (and the warmups) passed `harness.py check`: the Rust histogram is identical to ArtPop's, the ideal image agrees to 7.3e-16 relative L1, and the detector, population, and grid outputs pass their statistical checks (for example, a KS p-value of 0.87 for Rust masses and a χ² p-value of 0.24 for Rust grid counts). A failed check would have aborted the run.
 
@@ -22,16 +22,16 @@ Medians of 5 samples after 1 warmup per backend. All 50 measured samples (and th
 
 | Workflow | Python median (range) | Rust median (range) | Speedup | Python RSS MiB | Rust RSS MiB | Load avg during samples |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1M-star SSP → photometry | 1.677 s (1.622–1.798) | 0.175 s (0.163–0.177) | 9.6× | 195 | 64 | 1.58–1.61 |
-| 1M-star SSP → Sérsic source → 801² ideal image (41² PSF) → FITS | 2.066 s (2.065–2.097) | 0.318 s (0.318–0.324) | 6.5× | 329 | 105 | 1.52–1.61 |
-| 1M-star SSP → Plummer source → 2047² detector image (41² PSF) → 3 FITS planes | 3.656 s (3.565–4.148) | 0.727 s (0.726–0.728) | 5.0× | 913 | 225 | 1.40–1.48 |
-| 10M uniform positions → 2047² histogram → FITS | 1.828 s (1.799–1.833) | 0.539 s (0.484–0.575) | 3.4× | 433 | 288 | 1.56–1.61 |
-| MIST LSST 10 Gyr, 1e7 Msun, cutoff 29 mag → photometry | 1.945 s (1.940–1.972) | 0.148 s (0.148–0.149) | 13.2× | 278 | 64 | 1.52–1.56 |
-| MIST LSST 10 Gyr, 1e7 Msun fully sampled (2.3e7 stars) → photometry | 20.570 s (19.770–20.761) | 3.402 s (3.178–5.552) | 6.0× | 2881 | 2295 | 1.36–1.93 |
+| 1M-star SSP → photometry | 1.695 s (1.664–1.732) | 0.154 s (0.152–0.178) | 11.0× | 196 | 56 | 1.31–1.33 |
+| 1M-star SSP → Sérsic source → 801² ideal image (41² PSF) → FITS | 2.109 s (2.030–2.184) | 0.311 s (0.299–0.318) | 6.8× | 328 | 91 | 1.28–1.50 |
+| 1M-star SSP → Plummer source → 2047² detector image (41² PSF) → 3 FITS planes | 3.937 s (3.822–4.209) | 0.661 s (0.642–0.683) | 6.0× | 915 | 225 | 1.81–1.96 |
+| 10M uniform positions → 2047² histogram → FITS | 1.840 s (1.729–1.841) | 0.510 s (0.466–0.512) | 3.6× | 433 | 295 | 1.69–1.75 |
+| MIST LSST 10 Gyr, 1e7 Msun, cutoff 29 mag → photometry | 2.302 s (1.969–2.527) | 0.185 s (0.147–0.200) | 12.4× | 278 | 63 | 1.95–2.04 |
+| MIST LSST 10 Gyr, 1e7 Msun fully sampled (2.3e7 stars) → photometry | 21.356 s (19.906–22.188) | 3.300 s (2.988–6.302) | 6.5× | 2883 | 2267 | 2.21–3.07 |
 
-Medians of 3 samples after 1 warmup per backend. The geometric-mean speedup over all 11 workflows is **9.5×** (9.9× over the ten workflows that were also measured in round 1, up from 7.7×). Peak RSS was lower for Rust in every workflow.
+Medians of 3 samples after 1 warmup per backend. The geometric-mean speedup over all 11 workflows is **9.9×** (10.4× over the ten workflows that were also measured in round 1, up from 7.7×; round 2 reached 9.5×). Peak RSS was lower for Rust in every workflow.
 
-The last workflow is the compute-bound reference. Without a magnitude cutoff, `MISTSSP(total_mass=1e7)` draws about 2.3e7 stars in mass batches and interpolates nine columns (six LSST bands, EEP, log L, log Teff) for every star, so ArtPop spends 19 s in NumPy and SciPy after its 1.2 s of imports. Rust spends 2.4 s in `population.build` (sampling, interpolation, and content-hashing plus writing the 2.2 GB of population columns) and 0.7 s in `population.photometry` (reading and verifying two 190 MB band columns and evaluating 4.9e7 powers).
+The last workflow is the compute-bound reference. Without a magnitude cutoff, `MISTSSP(total_mass=1e7)` draws about 2.3e7 stars in mass batches and interpolates nine columns (six LSST bands, EEP, log L, log Teff) for every star, so ArtPop spends 19 s in NumPy and SciPy after its 1.2 s of imports. Rust spends 2.2 s in `population.build` (1.1 s sampling and interpolating, 1.1 s content-hashing and writing the 2.2 GB of population columns) and 0.6 s in `population.photometry` (reading and verifying two 190 MB band columns in parallel and evaluating 4.9e7 powers).
 
 Scale consistency checks (Rust against Python; the backends draw independent realizations, so the bounds are 6σ of the realization scatter predicted from the isochrone's flux moments):
 
@@ -153,7 +153,84 @@ Per-operation in-process medians (`metrics.elapsed_ms`, the same requests in bot
 | uniform_hist_10m | artifact.export | 148.6 | 68.3 |
 | uniform_hist_10m | **sum of operations** | **1123.2** | **487.0** |
 
-Where the remaining time goes, for the operations that still dominate: `observe.artificial` at 2047² spends about 100 ms realizing Poisson and read noise for 4.2 million pixels (the PTRS and polar algorithms are frozen by the `rust-v1` profile), 90–115 ms hashing and writing its five 33 MB planes, 35 ms in the convolution, and 25 ms in the deposit. Each 33 MB FITS export reads and verifies the plane (about 35 ms), encodes it, and writes and hashes it concurrently (about 30 ms). The 10 million positions cost 155 ms to draw and store (SHA-256 of 160 MB on two cores sets the floor) and 265 ms to read, verify, and bin. For the fully sampled MIST population, content-hashing and writing 2.2 GB of columns is the largest single cost.
+### Third optimization round
+
+Stage timings (`timings_ms`, now also reported by `population.build` and `source.build`) and `perf` on the round-2 binary showed three further things worth changing. The VM has two physical cores with SMT (four vCPUs), so CPU-bound stages scale by about 2× at best, and its filesystem writes 8 MB in 7–21 ms even for `dd`, so file output is a shared floor for exports and the artifact store. All ten round-1 workflows still reproduce their artifact IDs and exported files byte for byte.
+
+| Change | Where |
+| --- | --- |
+| Pixel-centers binning used `floor()` from libm per star (baseline x86-64 has no SSE4.1 rounding instruction); the range check already guarantees a non-negative argument, so a truncating cast gives the identical result. The classification loop is monomorphized per convention and reads block-local slices (no bounds checks); the cell buffer is filled without a memset pass. | `image::deposit` |
+| Buffers that several threads then write at random (histogram image and scatter arrays, convolution output) are pre-faulted in one kernel call (`MADV_POPULATE_WRITE`); concurrent first-touch faults on the same huge pages were about ten times slower. Buffers filled sequentially per thread are left to fault on their own, which is faster than a serial prefault. | `mem::prefault`, `image.rs`, `convolve.rs` |
+| FITS export streams the plane: each 8 MB chunk is digest-verified, byte-swapped, hashed, and written while the next chunk is read; the file is published only after the member's digest verifies. No 33 MB buffers. | `fits::ImageWriter`, `Loaded::stream_f64_bytes` |
+| `population.photometry` resolves every requested band first and reads all of their columns in one parallel pass. | `codec::LazyPopulation::abs_mags_many` |
+| Isochrone interpolation bounds each star's bracket search with a guide table over uniform mass bins (same row as a full binary search) and uses one precomputed IEEE slope per row. | `isochrone::MassGuide` |
+| Identity star identifiers are implicit (`Catalog::star_id: Option`), never materialized on build or load; mass-normalized sampling pre-sizes its output from the first batch. | `population.rs`, `codec.rs`, `imf::build_to_mass` |
+| CSV parsing resolves line numbers from the chunks' own line counts (no separate counting pass) and pre-sizes per-chunk vectors; CSV export formats rows in waves and writes and hashes each wave while the next is formatted. | `artpop_io::csv`, `artifact::write_atomic_streaming` |
+
+
+Per-operation in-process medians, round 2 against round 3 (the same requests; `mist_mass_cutoff` ran under the elevated load noted above):
+
+| Workflow | Operation | Round 2 (ms) | Round 3 (ms) |
+| --- | --- | ---: | ---: |
+| detector | source.build | 25.4 | 23.4 |
+| detector | observe.artificial | 8.8 | 8.7 |
+| detector | artifact.export | 1.6 | 1.6 |
+| detector | artifact.export | 1.6 | 1.4 |
+| detector | artifact.export | 1.7 | 1.5 |
+| detector | observation.inspect | 0.2 | 0.3 |
+| detector | **sum of operations** | **39.3** | **36.9** |
+| grid | spatial.grid-build | 1.1 | 1.1 |
+| grid | spatial.sample | 5.0 | 4.8 |
+| grid | artifact.export | 10.9 | 11.8 |
+| grid | **sum of operations** | **17.0** | **17.7** |
+| histogram | image.histogram | 22.5 | 20.2 |
+| histogram | artifact.export | 1.6 | 1.4 |
+| histogram | **sum of operations** | **24.1** | **21.6** |
+| ideal | source.build | 24.9 | 23.4 |
+| ideal | psf.build | 1.0 | 0.9 |
+| ideal | observe.ideal | 11.7 | 11.5 |
+| ideal | artifact.export | 1.6 | 1.5 |
+| ideal | **sum of operations** | **39.2** | **37.2** |
+| population | isochrone.import | 2.1 | 1.8 |
+| population | population.build | 20.2 | 17.3 |
+| population | artifact.export | 31.8 | 26.5 |
+| population | population.photometry | 7.0 | 5.4 |
+| population | population.inspect | 0.3 | 0.3 |
+| population | **sum of operations** | **61.3** | **51.3** |
+| artificial_2k | isochrone.import | 3.1 | 2.8 |
+| artificial_2k | population.build | 65.6 | 54.7 |
+| artificial_2k | source.build | 89.6 | 81.9 |
+| artificial_2k | psf.build | 1.1 | 1.0 |
+| artificial_2k | observe.artificial | 285.5 | 277.7 |
+| artificial_2k | artifact.export | 69.2 | 53.2 |
+| artificial_2k | artifact.export | 65.8 | 51.2 |
+| artificial_2k | artifact.export | 66.8 | 51.4 |
+| artificial_2k | **sum of operations** | **646.7** | **573.9** |
+| mist_full_1e7 | population.build | 2668.3 | 2605.6 |
+| mist_full_1e7 | population.photometry | 672.9 | 592.6 |
+| mist_full_1e7 | **sum of operations** | **3341.2** | **3198.2** |
+| mist_mass_cutoff | population.build | 85.9 | 105.2 |
+| mist_mass_cutoff | population.photometry | 3.0 | 3.6 |
+| mist_mass_cutoff | **sum of operations** | **88.9** | **108.8** |
+| population_1m | isochrone.import | 3.0 | 2.7 |
+| population_1m | population.build | 66.3 | 57.1 |
+| population_1m | population.photometry | 41.1 | 34.9 |
+| population_1m | population.inspect | 0.4 | 0.3 |
+| population_1m | **sum of operations** | **110.8** | **95.1** |
+| sersic_ideal_1m | isochrone.import | 2.9 | 2.9 |
+| sersic_ideal_1m | population.build | 64.2 | 55.3 |
+| sersic_ideal_1m | source.build | 107.0 | 104.2 |
+| sersic_ideal_1m | psf.build | 0.9 | 1.1 |
+| sersic_ideal_1m | observe.ideal | 62.3 | 55.9 |
+| sersic_ideal_1m | artifact.export | 14.4 | 14.7 |
+| sersic_ideal_1m | **sum of operations** | **251.7** | **234.1** |
+| uniform_hist_10m | spatial.sample | 154.7 | 143.6 |
+| uniform_hist_10m | image.histogram | 264.0 | 243.0 |
+| uniform_hist_10m | artifact.export | 68.3 | 50.1 |
+| uniform_hist_10m | **sum of operations** | **487.0** | **436.7** |
+
+Where the remaining time goes, for the operations that still dominate: `observe.artificial` at 2047² spends about 100 ms realizing Poisson and read noise for 4.2 million pixels (the PTRS and polar algorithms are frozen by the `rust-v1` profile), about 80 ms hashing and writing its five 33 MB planes, 38 ms in the convolution, and 18 ms in the deposit. Each 33 MB FITS export now streams in about 50 ms, of which most is this VM's file write throughput. The 10 million positions cost 144 ms to draw and store (SHA-256 of 160 MB on two cores sets the floor) and 243 ms to read, verify, and bin. For the fully sampled MIST population, content-hashing and writing 2.2 GB of columns (1.1 s) is the largest single cost, followed by interpolating eleven columns for 24.6 million stars (0.7 s).
+
 
 ## Interpretation
 

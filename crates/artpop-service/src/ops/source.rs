@@ -161,6 +161,7 @@ pub fn build(ctx: &Ctx, req: BuildRequest) -> Result<OpOutput> {
         return Ok(OpOutput::new(res).with(r));
     }
     let mut out = OpOutput::default();
+    let mut timings = crate::ops::Timings::start();
     let (population, pop_id) = if let Some(p) = &req.population {
         (load_population(ctx, &p.artifact_id, "/population/artifact_id")?, p.artifact_id.clone())
     } else {
@@ -178,9 +179,13 @@ pub fn build(ctx: &Ctx, req: BuildRequest) -> Result<OpOutput> {
         (None, Some(_)) => SpatialModelSpec::Uniform,
         (None, None) => return Err(Error::invalid("/spatial_model", "A population source needs spatial_model.")),
     };
+    timings.lap("load_population");
     let s = population_source(ctx, &population, &pop_id, &model, &req)?;
+    timings.lap("sample_and_assemble");
     let mut res = source_summary(&s);
     let r = put_source(ctx, s, vec![pop_id.clone()])?;
+    timings.lap("store");
+    res["timings_ms"] = timings.json();
     res["source_artifact_id"] = json!(r.artifact_id);
     res["population_artifact_id"] = json!(pop_id);
     out.result = res;

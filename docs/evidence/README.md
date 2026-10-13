@@ -16,11 +16,12 @@ Raw outputs behind the claims in the documentation, all from 2026-10-12 on the a
 
 | File | Contents |
 | --- | --- |
-| `rust-tests.txt` | `cargo test --release --workspace` output for the final source: 94 passed. |
+| `rust-tests.txt` | `cargo test --release --workspace` output for the final source: 97 passed. |
 | `clippy.txt` | `cargo clippy --workspace --all-targets` output (no warnings). |
-| `e2e-rust-parity.txt` | `pytest validation --require-rust -rA` against the final release binary (SHA-256 `2bd6a1f7…` as linked by `cargo test --release`; the plain `cargo build --release` of the same source is `b5495437…`): 36 passed (MIST comparisons enabled). |
-| `rust-vs-python-benchmark.json` | Binary `2acdfcb0…`, which differs from the final build only by the job-submission race fix (no scientific code), see [BENCHMARK_RESULTS.md](../BENCHMARK_RESULTS.md#results). Interleaved fresh-process timings of the five reference workflows (Python and Rust, raw samples, RSS, load average, per-sample validation). |
+| `e2e-rust-parity.txt` | `pytest validation --require-rust -rA` against the final release binary (SHA-256 `452e8d24…`): 36 passed (MIST comparisons enabled). |
+| `rust-vs-python-benchmark.json` | Final binary `452e8d24…`; interleaved fresh-process timings of the five reference workflows (Python and Rust, raw samples, RSS, load average, per-sample validation). |
 | `rust-vs-python-scale-benchmark.json` | Same for the six larger workflows (including the fully sampled 1e7 Msun MIST population), with statistical consistency metrics. |
-| `round1-rust-vs-python-benchmark.json`, `round1-rust-vs-python-scale-benchmark.json` | The first optimization round's measurements (binary `fe53d95e…`), kept for the before/after comparison in [BENCHMARK_RESULTS.md](../BENCHMARK_RESULTS.md#where-the-time-goes-rust). |
+| `round1-rust-vs-python-benchmark.json`, `round1-rust-vs-python-scale-benchmark.json` | The first optimization round's measurements (binary `fe53d95e…`), kept for the before/after comparisons in [BENCHMARK_RESULTS.md](../BENCHMARK_RESULTS.md#where-the-time-goes-rust). |
+| `round2-rust-vs-python-benchmark.json`, `round2-rust-vs-python-scale-benchmark.json` | The second round's measurements (binary `2acdfcb0…`). |
 | `data-fetch-lsst.json` | Live `data.fetch` of the MIST v1.2 LSST rotation-0.4 grid from mist.science (archive SHA-256 and sizes). |
 | `operation-catalog.json` | The 68 operations with CLI/MCP names, implementation status, and the test files that exercise them. |

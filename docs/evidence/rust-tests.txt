@@ -6,79 +6,82 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 running 6 tests
 test get_flag_prints_one_field_and_full_errors ... ok
-test exit_codes_and_clean_streams ... ok
 test killed_worker_is_reported_interrupted ... ok
+test exit_codes_and_clean_streams ... ok
 test mcp_protocol_revisions_negotiate ... ok
 test mcp_session_matches_cli_artifacts ... ok
 test jobs_complete_dedupe_conflict_and_cancel ... ok
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
 
 
-running 47 tests
-test convolve::tests::impulse_recovers_kernel_orientation ... ok
+running 48 tests
 test convolve::tests::matches_astropy_convolve_fft ... ok
 test filters::tests::analytic_box_filter ... ok
+test convolve::tests::impulse_recovers_kernel_orientation ... ok
 test filters::tests::bundled_catalog_is_complete ... ok
 test filters::tests::conversions_follow_zero_point_converter ... ok
-test image::tests::invalid_rows_are_counted_or_rejected ... ok
 test image::tests::legacy_edges_match_fast_histogram_probe ... ok
+test image::tests::invalid_rows_are_counted_or_rejected ... ok
 test image::tests::pixel_centers_accept_final_column_and_reject_edges ... ok
 test image::tests::parallel_pairwise_sum_is_bitwise_sequential ... ok
 test imager::tests::instrumental_zero_point_scales_sky_with_pixel_area ... ok
 test imager::tests::physical_conversion_scales_and_inverts ... ok
-test convolve::tests::direct_and_fft_agree_for_both_boundaries ... ok
 test imf::tests::integrals_handle_logarithmic_slopes ... ok
 test imf::tests::kroupa_raw_matches_upstream_formula ... ok
+test convolve::tests::direct_and_fft_agree_for_both_boundaries ... ok
 test imf::tests::upstream_kroupa_integrals ... ok
 test interp::tests::linear_matches_numpy_interp ... ok
 test interp::tests::splines_match_scipy_make_interp_spline ... ok
 test interp::tests::step_kinds_match_scipy ... ok
 test isochrone::tests::magnitude_inversion_returns_every_root ... ok
+test imf::tests::samplers_stay_in_range_and_agree ... ok
 test isochrone::tests::restricted_remnant_limit_cannot_subtract_mass ... ok
 test isochrone::tests::upstream_reference_values ... ok
-test imf::tests::samplers_stay_in_range_and_agree ... ok
+test isochrone::tests::mass_guide_matches_full_binary_search ... ok
 test mist::tests::age_grid_indices ... ok
 test mist::tests::tail_extension_matches_upstream_rule ... ok
 test mem::tests::maps_and_gathers_match_sequential_loops ... ok
-test population::tests::chunked_band_sums_match_a_plain_loop ... ok
 test image::tests::tiled_parallel_deposit_is_bitwise_serial ... ok
-test population::tests::composition_keeps_moments_in_either_order ... ok
+test population::tests::extinction_shifts_total_and_sbf_by_exactly_a ... ok
+test population::tests::chunked_band_sums_match_a_plain_loop ... ok
 test population::tests::phase_boundaries ... ok
-test psf::tests::modes_are_normalized_and_converge_to_integral ... ok
+test population::tests::composition_keeps_moments_in_either_order ... ok
 test psf::tests::modes_match_astropy_kernels ... ok
 test psf::tests::upstream_three_by_three_kernels ... ok
 test rng::tests::exact_floor_matches_std ... ok
-test population::tests::extinction_shifts_total_and_sbf_by_exactly_a ... ok
+test psf::tests::modes_are_normalized_and_converge_to_integral ... ok
 test population::tests::mass_normalization_and_cutoff_regimes ... ok
 test rng::tests::seed_parsing_is_strict ... ok
 test rng::tests::streams_are_independent_and_reproducible ... ok
 test spatial::tests::asymmetric_grid_preserves_axes ... ok
+test spatial::tests::categorical_frequencies ... ok
 test rng::tests::paired_and_zipped_block_fills_match_single_arrays ... ok
-test spatial::tests::fractional_offsets_and_outside_policy ... ok
 test spatial::tests::invalid_grids_are_rejected ... ok
 test spatial::tests::sersic_matches_astropy_value ... ok
 test special::tests::gauss_kronrod_integrates_gaussian ... ok
 test special::tests::incomplete_gamma_reference_values ... ok
-test spatial::tests::categorical_frequencies ... ok
+test spatial::tests::fractional_offsets_and_outside_policy ... ok
 test rng::tests::poisson_and_normal_moments ... ok
 test convolve::tests::tiled_overlap_save_matches_direct ... ok
 
-test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.89s
+test result: ok. 48 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.29s
 
 
-running 9 tests
+running 11 tests
 test csv::tests::errors_report_lines ... ok
 test csv::tests::round_trip_is_exact ... ok
-test csv::tests::typed_columns_render_like_json_values ... ok
 test fits::tests::double_formatting_matches_c_percent_15g ... ok
+test csv::tests::typed_columns_render_like_json_values ... ok
+test fits::tests::native_encoding_is_byte_identical_to_cfitsio ... ok
 test fits::tests::round_trip_non_square_with_headers ... ok
 test preview::tests::percentile_matches_numpy_linear ... ok
-test fits::tests::native_encoding_is_byte_identical_to_cfitsio ... ok
 test preview::tests::png_is_bounded_and_oriented ... ok
+test fits::tests::streaming_writer_matches_encode_image ... ok
+test csv::tests::streamed_csv_equals_whole_text ... ok
 test csv::tests::chunked_parse_matches_sequential_and_reports_first_error ... ok
 
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
 
 
 running 0 tests
@@ -89,7 +92,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 running 1 test
 test units::tests::conversions_and_dimension_errors ... ok
 
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
 
 running 7 tests
@@ -97,30 +100,30 @@ test dataset_listing_and_filter_inspection ... ok
 test inspect_clone_and_bundle_round_trip ... ok
 test discovery_schema_estimate_and_citations ... ok
 test imf_build_policies_and_nearest_masses ... ok
-test plots_render_as_svg ... ok
 test smooth_light_and_combine_reproduce_ideal_observation ... ok
+test plots_render_as_svg ... ok
 test simulate_run_end_to_end ... ok
 
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
 
 
 running 14 tests
 test conflicting_instrument_configuration_is_rejected ... ok
 test custom_filter_curves_make_a_valid_instrument ... ok
-test final_column_star_is_kept_by_default_and_dropped_by_legacy_bins ... ok
 test expected_variance_is_nonnegative_even_when_observed_pixels_are_negative ... ok
+test fractional_offsets_work_and_outside_policy_always_applies ... ok
+test final_column_star_is_kept_by_default_and_dropped_by_legacy_bins ... ok
 test instrumental_sky_scales_with_pixel_area ... ok
 test logarithmic_imf_slopes_integrate ... ok
-test fractional_offsets_work_and_outside_policy_always_applies ... ok
 test off_grid_mist_uses_the_requested_rotation_and_accepts_age_10_3 ... ok
 test partly_invalid_positions_are_never_deposited ... ok
 test restricted_remnant_limit_cannot_subtract_mass ... ok
-test composition_keeps_extinction_labels_and_smooth_light ... ok
 test one_magnitude_of_extinction_shifts_total_and_sbf_by_one ... ok
+test composition_keeps_extinction_labels_and_smooth_light ... ok
 test composition_with_unresolved_light_works_in_both_orders ... ok
 test uniform_surface_brightness_count_depends_on_the_imf ... ok
 
-test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
 
 
 running 10 tests
@@ -128,14 +131,14 @@ test embed_into_fits_background_with_clipping_and_headers ... ok
 test every_operation_has_a_strict_object_schema ... ok
 test missing_mist_data_is_typed_and_recoverable ... ok
 test parsec_import_selects_age_metallicity_and_filters ... ok
-test adding_bands_does_not_change_sampled_masses_or_positions ... ok
 test offline_end_to_end_from_bundled_data_to_fits_and_png ... ok
+test adding_bands_does_not_change_sampled_masses_or_positions ... ok
 test ring_grid_and_empirical_psf ... ok
 test phases_composition_and_labels ... ok
 test three_band_observations_share_stars_with_independent_noise ... ok
 test bounded_catalog_preview_and_strict_validation ... ok
 
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
 
 
 running 0 tests

@@ -123,15 +123,16 @@ fn quoted(s: &str) -> String {
     format!("'{inner}'")
 }
 
-/// Encode a 64-bit float primary image HDU with the given keys and verbatim
-/// extra cards (structural cards must already be filtered by the caller).
-pub fn encode_image(image: &Image, keys: &[(&str, Key, &str)], extra_cards: &[String]) -> Result<Vec<u8>> {
+/// The padded primary header (a multiple of 2880 bytes) of a 64-bit float
+/// image of `width` x `height` pixels with the given keys and verbatim extra
+/// cards (structural cards must already be filtered by the caller).
+pub fn encode_header(width: usize, height: usize, keys: &[(&str, Key, &str)], extra_cards: &[String]) -> Result<Vec<u8>> {
     let mut cards: Vec<[u8; 80]> = Vec::with_capacity(16 + keys.len() + extra_cards.len());
     cards.push(card("SIMPLE", "T", false, "file does conform to FITS standard"));
     cards.push(card("BITPIX", "-64", false, "number of bits per data pixel"));
     cards.push(card("NAXIS", "2", false, "number of data axes"));
-    cards.push(card("NAXIS1", &image.width.to_string(), false, "length of data axis 1"));
-    cards.push(card("NAXIS2", &image.height.to_string(), false, "length of data axis 2"));
+    cards.push(card("NAXIS1", &width.to_string(), false, "length of data axis 1"));
+    cards.push(card("NAXIS2", &height.to_string(), false, "length of data axis 2"));
     cards.push(card("EXTEND", "T", false, "FITS dataset may contain extensions"));
     cards.push(pad_card("COMMENT   FITS (Flexible Image Transport System) format is defined in 'Astronomy"));
     cards.push(pad_card("COMMENT   and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H"));
@@ -153,14 +154,90 @@ pub fn encode_image(image: &Image, keys: &[(&str, Key, &str)], extra_cards: &[St
     }
     cards.push(pad_card("END"));
     let header_len = cards.len() * 80;
-    let header_padded = header_len.div_ceil(RECORD) * RECORD;
-    let data_len = image.data.len() * 8;
-    let data_padded = data_len.div_ceil(RECORD) * RECORD;
-    let mut out = vec![0u8; header_padded + data_padded];
+    let mut out = vec![b' '; header_len.div_ceil(RECORD) * RECORD];
     for (i, c) in cards.iter().enumerate() {
         out[i * 80..(i + 1) * 80].copy_from_slice(c);
     }
-    out[header_len..header_padded].fill(b' ');
+    Ok(out)
+}
+
+/// Incremental writer of a 64-bit float primary image HDU: header first, then
+/// the pixel data pushed as little-endian f64 bytes in any chunking, byte-
+/// swapped to FITS big-endian order, hashed, and written as it arrives. The
+/// bytes are identical to [`encode_image`] of the same image.
+pub struct ImageWriter {
+    file: std::fs::File,
+    hasher: sha2::Sha256,
+    swapped: Vec<u8>,
+    data_bytes_written: usize,
+    data_bytes_expected: usize,
+    path: std::path::PathBuf,
+}
+
+impl ImageWriter {
+    /// Create `path` and write the header.
+    pub fn create(path: &Path, width: usize, height: usize, keys: &[(&str, Key, &str)], extra_cards: &[String]) -> Result<ImageWriter> {
+        use sha2::Digest;
+        use std::io::Write;
+        let header = encode_header(width, height, keys, extra_cards)?;
+        let mut file = std::fs::File::create(path).map_err(|e| Error::new(ErrorCode::IoError, format!("Cannot create {}: {e}", path.display())))?;
+        file.write_all(&header).map_err(|e| Error::new(ErrorCode::IoError, format!("Cannot write {}: {e}", path.display())))?;
+        let mut hasher = sha2::Sha256::new();
+        hasher.update(&header);
+        Ok(ImageWriter { file, hasher, swapped: Vec::new(), data_bytes_written: 0, data_bytes_expected: width * height * 8, path: path.to_path_buf() })
+    }
+
+    /// Append pixels given as little-endian f64 bytes (length a multiple of 8).
+    pub fn push_le_f64_bytes(&mut self, le: &[u8]) -> Result<()> {
+        use rayon::prelude::*;
+        use sha2::Digest;
+        use std::io::Write;
+        if !le.len().is_multiple_of(8) || self.data_bytes_written + le.len() > self.data_bytes_expected {
+            return Err(Error::internal("FITS pixel stream does not match the image shape."));
+        }
+        let ImageWriter { file, hasher, swapped, path, .. } = self;
+        swapped.clear();
+        swapped.resize(le.len(), 0);
+        swapped.par_chunks_mut(8 << 15).zip(le.par_chunks(8 << 15)).for_each(|(dst, src)| {
+            for (d, s) in dst.as_chunks_mut::<8>().0.iter_mut().zip(src.as_chunks::<8>().0) {
+                *d = [s[7], s[6], s[5], s[4], s[3], s[2], s[1], s[0]];
+            }
+        });
+        let (written, ()) = rayon::join(|| file.write_all(swapped), || hasher.update(&*swapped));
+        written.map_err(|e| Error::new(ErrorCode::IoError, format!("Cannot write {}: {e}", path.display())))?;
+        self.data_bytes_written += le.len();
+        Ok(())
+    }
+
+    /// Pad the data unit, flush, and return the SHA-256 hex digest of the file.
+    pub fn finish(mut self) -> Result<String> {
+        use sha2::Digest;
+        use std::io::Write;
+        if self.data_bytes_written != self.data_bytes_expected {
+            return Err(Error::internal("FITS pixel stream ended before the image was complete."));
+        }
+        let pad = self.data_bytes_expected.div_ceil(RECORD) * RECORD - self.data_bytes_expected;
+        let zeros = vec![0u8; pad];
+        self.file.write_all(&zeros).map_err(|e| Error::new(ErrorCode::IoError, format!("Cannot write {}: {e}", self.path.display())))?;
+        self.hasher.update(&zeros);
+        self.file.flush().map_err(|e| Error::new(ErrorCode::IoError, format!("Cannot write {}: {e}", self.path.display())))?;
+        let mut hex = String::with_capacity(64);
+        for b in self.hasher.finalize() {
+            hex.push_str(&format!("{b:02x}"));
+        }
+        Ok(hex)
+    }
+}
+
+/// Encode a 64-bit float primary image HDU with the given keys and verbatim
+/// extra cards (structural cards must already be filtered by the caller).
+pub fn encode_image(image: &Image, keys: &[(&str, Key, &str)], extra_cards: &[String]) -> Result<Vec<u8>> {
+    let header = encode_header(image.width, image.height, keys, extra_cards)?;
+    let header_padded = header.len();
+    let data_len = image.data.len() * 8;
+    let data_padded = data_len.div_ceil(RECORD) * RECORD;
+    let mut out = vec![0u8; header_padded + data_padded];
+    out[..header_padded].copy_from_slice(&header);
     {
         use rayon::prelude::*;
         out[header_padded..header_padded + data_len].par_chunks_mut(8 << 15).zip(image.data.par_chunks(1 << 15)).for_each(|(dst, src)| {
@@ -311,6 +388,35 @@ mod tests {
         assert_eq!(r.image, img);
         assert!(r.cards.iter().any(|c| c.starts_with("BUNIT")));
         assert!(r.cards.iter().any(|c| c.starts_with("OBSERVER")));
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn streaming_writer_matches_encode_image() {
+        let dir = std::env::temp_dir().join(format!("artpop-fits-stream-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut st = artpop_core::rng::Seed(21).stream("fits", &[]);
+        let (w, h) = (613usize, 377usize);
+        let img = Image::new(w, h, (0..w * h).map(|_| st.uniform_range(-1e3, 1e3)).collect()).unwrap();
+        let keys: Vec<(&str, Key, &str)> = vec![("BUNIT", Key::Str("counts".into()), "pixel unit"), ("ZPT", Key::F64(27.0), "zero point")];
+        let extra = vec!["OBSERVER= 'test'".to_string()];
+        let want = encode_image(&img, &keys, &extra).unwrap();
+        let p = dir.join("stream.fits");
+        let mut wr = ImageWriter::create(&p, w, h, &keys, &extra).unwrap();
+        // SAFETY (test): little-endian host byte view of the pixel values.
+        let le = unsafe { std::slice::from_raw_parts(img.data.as_ptr() as *const u8, img.data.len() * 8) };
+        let mut off = 0;
+        for size in [8 * 1000, 8 * 70_000, 8 * 3] {
+            let end = (off + size).min(le.len());
+            wr.push_le_f64_bytes(&le[off..end]).unwrap();
+            off = end;
+        }
+        wr.push_le_f64_bytes(&le[off..]).unwrap();
+        let digest = wr.finish().unwrap();
+        let got = std::fs::read(&p).unwrap();
+        assert!(got == want, "streamed bytes differ");
+        use sha2::Digest;
+        assert_eq!(digest, sha2::Sha256::digest(&want).iter().map(|b| format!("{b:02x}")).collect::<String>());
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

@@ -3,6 +3,7 @@
 use crate::codec::{SourceLoad, image_member_owned, load_source_with, read_image};
 use crate::ops::image::{SmoothUnits, load_psf, render_smooth};
 use crate::ops::imager::InstrumentSpec;
+use crate::ops::Timings;
 use crate::ops::source::source_mask;
 use crate::store::Member;
 use crate::types::{ArtifactInput, Selection};
@@ -59,26 +60,6 @@ struct Rendered {
     convolution: Value,
     inputs: Vec<String>,
     timings: Timings,
-}
-
-/// Wall-clock stage timings reported in results (never stored in artifacts).
-#[derive(Default)]
-struct Timings(Vec<(&'static str, f64)>, Option<std::time::Instant>);
-
-impl Timings {
-    fn start() -> Timings {
-        Timings(Vec::new(), Some(std::time::Instant::now()))
-    }
-    fn lap(&mut self, stage: &'static str) {
-        let now = std::time::Instant::now();
-        if let Some(t) = self.1 {
-            self.0.push((stage, (now - t).as_secs_f64() * 1000.0));
-        }
-        self.1 = Some(now);
-    }
-    fn json(&self) -> Value {
-        Value::Object(self.0.iter().map(|(k, v)| (k.to_string(), json!((v * 10.0).round() / 10.0))).collect())
-    }
 }
 
 /// Deposit `weights` of the selected inside stars, add smooth light, convolve.

@@ -104,8 +104,10 @@ pub fn population_bundle(p: &Population) -> (Value, Vec<Member>) {
     let c = &p.catalog;
     // Identity star IDs and all-zero component columns are implied, not stored.
     let mut members = vec![Member::column("initial_mass", &c.initial_mass, Some("Msun")), Member::column("current_mass", &c.current_mass, Some("Msun"))];
-    if !is_identity(&c.star_id) {
-        members.push(Member::u64("star_id", &c.star_id));
+    if let Some(ids) = &c.star_id
+        && !is_identity(ids)
+    {
+        members.push(Member::u64("star_id", ids));
     }
     if c.component.iter().any(|v| *v != 0) {
         members.push(Member::u32("component", &c.component));
@@ -139,12 +141,17 @@ pub fn population_bundle_owned(p: Population) -> (Value, Vec<Member>) {
         "components": components,
         "has_eep": catalog.eep.is_some(),
     });
+    let single_component = components.len() == 1;
     let Catalog { star_id, component, initial_mass, current_mass, abs_mags, eep, log_l, log_teff } = catalog;
     let mut members = vec![Member::column_owned("initial_mass", initial_mass, Some("Msun")), Member::column_owned("current_mass", current_mass, Some("Msun"))];
-    if !is_identity(&star_id) {
-        members.push(Member::u64("star_id", &star_id));
+    if let Some(ids) = &star_id
+        && !is_identity(ids)
+    {
+        members.push(Member::u64("star_id", ids));
     }
-    if component.iter().any(|v| *v != 0) {
+    // A single-component population can only hold component 0 (validated on
+    // load), so its column is never scanned or stored.
+    if !single_component && component.iter().any(|v| *v != 0) {
         members.push(Member::u32("component", &component));
     }
     for (f, col) in filters.iter().zip(abs_mags) {
@@ -202,6 +209,16 @@ impl LazyPopulation {
         Ok(v)
     }
 
+    /// Absolute magnitudes of several bands, read and verified in parallel.
+    pub fn abs_mags_many(&self, bands: &[usize]) -> Result<Vec<Vec<f64>>> {
+        let names: Vec<String> = bands.iter().map(|b| format!("abs_mag:{}", self.header.filters[*b])).collect();
+        let cols = self.loaded.f64s_many(&names)?;
+        for c in &cols {
+            self.check_len(c.len())?;
+        }
+        Ok(cols)
+    }
+
     /// Component ids (None when every star belongs to component 0).
     pub fn component(&self) -> Result<Option<Vec<u32>>> {
         if self.loaded.has("component") {
@@ -244,7 +261,7 @@ pub fn load_population(ctx: &Ctx, id: &str, pointer: &str) -> Result<Population>
     names.extend(filters.iter().map(|f| format!("abs_mag:{f}")));
     let mut cols = l.f64s_many(&names)?.into_iter();
     let catalog = Catalog {
-        star_id: u64_or_identity(&l, "star_id", n)?,
+        star_id: if l.has("star_id") { Some(l.u64s("star_id")?) } else { None },
         component: u32_or_zero(&l, "component", n)?,
         initial_mass: cols.next().unwrap(),
         current_mass: cols.next().unwrap(),
@@ -254,7 +271,7 @@ pub fn load_population(ctx: &Ctx, id: &str, pointer: &str) -> Result<Population>
         log_teff: opt("log_Teff")?,
     };
     let n = catalog.initial_mass.len();
-    if catalog.star_id.len() != n || catalog.component.len() != n || catalog.current_mass.len() != n || catalog.abs_mags.iter().any(|c| c.len() != n) {
+    if catalog.star_id.as_ref().is_some_and(|v| v.len() != n) || catalog.component.len() != n || catalog.current_mass.len() != n || catalog.abs_mags.iter().any(|c| c.len() != n) {
         return Err(Error::new(ErrorCode::DataCorrupt, "Population catalog columns have inconsistent lengths."));
     }
     if catalog.component.iter().any(|c| *c as usize >= components.len()) {

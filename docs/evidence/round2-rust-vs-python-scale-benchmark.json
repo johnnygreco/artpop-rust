@@ -1,0 +1,378 @@
+{
+  "schema_version": "1",
+  "measurement": "fresh-process end-to-end workflows at scale; Rust times include the Python adapter process that drives the CLI",
+  "python": "3.10.12 (main, Aug 31 2026, 10:18:17) [GCC 11.4.0]",
+  "platform": "Linux-6.8.0-1069-gcp-x86_64-with-glibc2.35",
+  "logical_cpus": 4,
+  "rust_binary": "/home/ubuntu/one-offs/artpop-rust/target/release/artpop-rust",
+  "rust_version": "artpop-rust 0.1.0",
+  "warmup": 1,
+  "repeat": 3,
+  "cases": {
+    "population_1m": {
+      "python": {
+        "median_seconds": 1.677436044003116,
+        "min_seconds": 1.6221725560026243,
+        "max_seconds": 1.798252233013045,
+        "median_sampled_peak_tree_rss_bytes": 204783616,
+        "samples": [
+          {
+            "wall_seconds": 1.798252233013045,
+            "sampled_peak_tree_rss_bytes": 205139968,
+            "load_average_1m_before": 1.58,
+            "load_average_1m_after": 1.58
+          },
+          {
+            "wall_seconds": 1.677436044003116,
+            "sampled_peak_tree_rss_bytes": 204783616,
+            "load_average_1m_before": 1.58,
+            "load_average_1m_after": 1.58
+          },
+          {
+            "wall_seconds": 1.6221725560026243,
+            "sampled_peak_tree_rss_bytes": 203878400,
+            "load_average_1m_before": 1.58,
+            "load_average_1m_after": 1.61
+          }
+        ]
+      },
+      "rust": {
+        "median_seconds": 0.17483391900896095,
+        "min_seconds": 0.16300158799276687,
+        "max_seconds": 0.17708517800201662,
+        "median_sampled_peak_tree_rss_bytes": 66596864,
+        "samples": [
+          {
+            "wall_seconds": 0.17708517800201662,
+            "sampled_peak_tree_rss_bytes": 66596864,
+            "load_average_1m_before": 1.58,
+            "load_average_1m_after": 1.58
+          },
+          {
+            "wall_seconds": 0.17483391900896095,
+            "sampled_peak_tree_rss_bytes": 66412544,
+            "load_average_1m_before": 1.58,
+            "load_average_1m_after": 1.58
+          },
+          {
+            "wall_seconds": 0.16300158799276687,
+            "sampled_peak_tree_rss_bytes": 66670592,
+            "load_average_1m_before": 1.61,
+            "load_average_1m_after": 1.61
+          }
+        ]
+      },
+      "consistency": {
+        "z_total_flux_LSST_g_rust": -1.4604325947421808,
+        "z_total_flux_LSST_g_python": -1.2511554341037154,
+        "z_total_flux_LSST_i_rust": -1.4963101061652968,
+        "z_total_flux_LSST_i_python": -1.4954741084795735
+      }
+    },
+    "sersic_ideal_1m": {
+      "python": {
+        "median_seconds": 2.0662440009764396,
+        "min_seconds": 2.0649408520257566,
+        "max_seconds": 2.09673551999731,
+        "median_sampled_peak_tree_rss_bytes": 344506368,
+        "samples": [
+          {
+            "wall_seconds": 2.09673551999731,
+            "sampled_peak_tree_rss_bytes": 344264704,
+            "load_average_1m_before": 1.61,
+            "load_average_1m_after": 1.56
+          },
+          {
+            "wall_seconds": 2.0649408520257566,
+            "sampled_peak_tree_rss_bytes": 344506368,
+            "load_average_1m_before": 1.56,
+            "load_average_1m_after": 1.56
+          },
+          {
+            "wall_seconds": 2.0662440009764396,
+            "sampled_peak_tree_rss_bytes": 344793088,
+            "load_average_1m_before": 1.56,
+            "load_average_1m_after": 1.52
+          }
+        ]
+      },
+      "rust": {
+        "median_seconds": 0.31800243697944097,
+        "min_seconds": 0.3176615969859995,
+        "max_seconds": 0.32375510802376084,
+        "median_sampled_peak_tree_rss_bytes": 110247936,
+        "samples": [
+          {
+            "wall_seconds": 0.32375510802376084,
+            "sampled_peak_tree_rss_bytes": 110780416,
+            "load_average_1m_before": 1.56,
+            "load_average_1m_after": 1.56
+          },
+          {
+            "wall_seconds": 0.31800243697944097,
+            "sampled_peak_tree_rss_bytes": 103297024,
+            "load_average_1m_before": 1.56,
+            "load_average_1m_after": 1.56
+          },
+          {
+            "wall_seconds": 0.3176615969859995,
+            "sampled_peak_tree_rss_bytes": 110247936,
+            "load_average_1m_before": 1.52,
+            "load_average_1m_after": 1.52
+          }
+        ]
+      },
+      "consistency": {
+        "image_sum_ratio": 0.9287972023718183,
+        "realization_rel_sigma": 0.030832217740684866
+      }
+    },
+    "artificial_2k": {
+      "python": {
+        "median_seconds": 3.655785086011747,
+        "min_seconds": 3.5654623370210174,
+        "max_seconds": 4.148041942011332,
+        "median_sampled_peak_tree_rss_bytes": 957497344,
+        "samples": [
+          {
+            "wall_seconds": 3.655785086011747,
+            "sampled_peak_tree_rss_bytes": 957358080,
+            "load_average_1m_before": 1.48,
+            "load_average_1m_after": 1.48
+          },
+          {
+            "wall_seconds": 4.148041942011332,
+            "sampled_peak_tree_rss_bytes": 959729664,
+            "load_average_1m_before": 1.44,
+            "load_average_1m_after": 1.4
+          },
+          {
+            "wall_seconds": 3.5654623370210174,
+            "sampled_peak_tree_rss_bytes": 957497344,
+            "load_average_1m_before": 1.4,
+            "load_average_1m_after": 1.4
+          }
+        ]
+      },
+      "rust": {
+        "median_seconds": 0.7274410239770077,
+        "min_seconds": 0.7261722830007784,
+        "max_seconds": 0.7275889639859088,
+        "median_sampled_peak_tree_rss_bytes": 236015616,
+        "samples": [
+          {
+            "wall_seconds": 0.7275889639859088,
+            "sampled_peak_tree_rss_bytes": 236015616,
+            "load_average_1m_before": 1.48,
+            "load_average_1m_after": 1.44
+          },
+          {
+            "wall_seconds": 0.7261722830007784,
+            "sampled_peak_tree_rss_bytes": 236109824,
+            "load_average_1m_before": 1.44,
+            "load_average_1m_after": 1.44
+          },
+          {
+            "wall_seconds": 0.7274410239770077,
+            "sampled_peak_tree_rss_bytes": 235929600,
+            "load_average_1m_before": 1.4,
+            "load_average_1m_after": 1.4
+          }
+        ]
+      },
+      "consistency": {
+        "source_counts_ratio": 1.1057099651381532,
+        "realization_rel_sigma": 0.030832217740684866
+      }
+    },
+    "uniform_hist_10m": {
+      "python": {
+        "median_seconds": 1.8281544130004477,
+        "min_seconds": 1.7989294440194499,
+        "max_seconds": 1.8331447329837829,
+        "median_sampled_peak_tree_rss_bytes": 453910528,
+        "samples": [
+          {
+            "wall_seconds": 1.8331447329837829,
+            "sampled_peak_tree_rss_bytes": 454639616,
+            "load_average_1m_before": 1.61,
+            "load_average_1m_after": 1.61
+          },
+          {
+            "wall_seconds": 1.8281544130004477,
+            "sampled_peak_tree_rss_bytes": 453910528,
+            "load_average_1m_before": 1.61,
+            "load_average_1m_after": 1.56
+          },
+          {
+            "wall_seconds": 1.7989294440194499,
+            "sampled_peak_tree_rss_bytes": 448479232,
+            "load_average_1m_before": 1.56,
+            "load_average_1m_after": 1.56
+          }
+        ]
+      },
+      "rust": {
+        "median_seconds": 0.539107775024604,
+        "min_seconds": 0.484346495999489,
+        "max_seconds": 0.5750653239956591,
+        "median_sampled_peak_tree_rss_bytes": 301912064,
+        "samples": [
+          {
+            "wall_seconds": 0.484346495999489,
+            "sampled_peak_tree_rss_bytes": 301092864,
+            "load_average_1m_before": 1.61,
+            "load_average_1m_after": 1.61
+          },
+          {
+            "wall_seconds": 0.539107775024604,
+            "sampled_peak_tree_rss_bytes": 304926720,
+            "load_average_1m_before": 1.61,
+            "load_average_1m_after": 1.61
+          },
+          {
+            "wall_seconds": 0.5750653239956591,
+            "sampled_peak_tree_rss_bytes": 301912064,
+            "load_average_1m_before": 1.56,
+            "load_average_1m_after": 1.56
+          }
+        ]
+      },
+      "consistency": {
+        "deposited_ratio": 1.000029929312769
+      }
+    },
+    "mist_mass_cutoff": {
+      "python": {
+        "median_seconds": 1.9446417720173486,
+        "min_seconds": 1.9400222919939552,
+        "max_seconds": 1.9720162420126144,
+        "median_sampled_peak_tree_rss_bytes": 291819520,
+        "samples": [
+          {
+            "wall_seconds": 1.9446417720173486,
+            "sampled_peak_tree_rss_bytes": 291721216,
+            "load_average_1m_before": 1.52,
+            "load_average_1m_after": 1.52
+          },
+          {
+            "wall_seconds": 1.9720162420126144,
+            "sampled_peak_tree_rss_bytes": 291868672,
+            "load_average_1m_before": 1.52,
+            "load_average_1m_after": 1.56
+          },
+          {
+            "wall_seconds": 1.9400222919939552,
+            "sampled_peak_tree_rss_bytes": 291819520,
+            "load_average_1m_before": 1.56,
+            "load_average_1m_after": 1.56
+          }
+        ]
+      },
+      "rust": {
+        "median_seconds": 0.14781180798308924,
+        "min_seconds": 0.14755112899001688,
+        "max_seconds": 0.14886009899782948,
+        "median_sampled_peak_tree_rss_bytes": 66961408,
+        "samples": [
+          {
+            "wall_seconds": 0.14886009899782948,
+            "sampled_peak_tree_rss_bytes": 66412544,
+            "load_average_1m_before": 1.52,
+            "load_average_1m_after": 1.52
+          },
+          {
+            "wall_seconds": 0.14781180798308924,
+            "sampled_peak_tree_rss_bytes": 67538944,
+            "load_average_1m_before": 1.52,
+            "load_average_1m_after": 1.52
+          },
+          {
+            "wall_seconds": 0.14755112899001688,
+            "sampled_peak_tree_rss_bytes": 66961408,
+            "load_average_1m_before": 1.56,
+            "load_average_1m_after": 1.56
+          }
+        ]
+      },
+      "consistency": {
+        "total_mag_diff_LSST_g": -0.004173764269825853,
+        "total_mag_diff_LSST_i": -0.012719918011896425
+      }
+    },
+    "mist_full_1e7": {
+      "python": {
+        "median_seconds": 20.57035798599827,
+        "min_seconds": 19.77002163400175,
+        "max_seconds": 20.761091974010924,
+        "median_sampled_peak_tree_rss_bytes": 3020808192,
+        "samples": [
+          {
+            "wall_seconds": 20.57035798599827,
+            "sampled_peak_tree_rss_bytes": 3020808192,
+            "load_average_1m_before": 1.5,
+            "load_average_1m_after": 1.36
+          },
+          {
+            "wall_seconds": 20.761091974010924,
+            "sampled_peak_tree_rss_bytes": 3020402688,
+            "load_average_1m_before": 1.93,
+            "load_average_1m_after": 1.87
+          },
+          {
+            "wall_seconds": 19.77002163400175,
+            "sampled_peak_tree_rss_bytes": 3022757888,
+            "load_average_1m_before": 1.87,
+            "load_average_1m_after": 1.69
+          }
+        ]
+      },
+      "rust": {
+        "median_seconds": 3.402034208003897,
+        "min_seconds": 3.1776850199967157,
+        "max_seconds": 5.552040428010514,
+        "median_sampled_peak_tree_rss_bytes": 2406903808,
+        "samples": [
+          {
+            "wall_seconds": 3.402034208003897,
+            "sampled_peak_tree_rss_bytes": 2406567936,
+            "load_average_1m_before": 1.36,
+            "load_average_1m_after": 1.57
+          },
+          {
+            "wall_seconds": 5.552040428010514,
+            "sampled_peak_tree_rss_bytes": 2406903808,
+            "load_average_1m_before": 1.57,
+            "load_average_1m_after": 1.93
+          },
+          {
+            "wall_seconds": 3.1776850199967157,
+            "sampled_peak_tree_rss_bytes": 2406936576,
+            "load_average_1m_before": 1.69,
+            "load_average_1m_after": 1.63
+          }
+        ]
+      },
+      "consistency": {
+        "num_stars_ratio": 1.05,
+        "total_mass_ratio": 1.0498654113488473,
+        "flux_per_star_ratio_LSST_g": 1.011582122945498,
+        "realization_rel_sigma_LSST_g": 0.0038983986060538334,
+        "sbf_mag_diff_LSST_g": -0.03651148447332986,
+        "flux_per_star_ratio_LSST_i": 1.019308794791063,
+        "realization_rel_sigma_LSST_i": 0.0063635767032011814,
+        "sbf_mag_diff_LSST_i": -0.03244832996432123
+      }
+    }
+  },
+  "speedups": {
+    "population_1m": 9.594454288456124,
+    "sersic_ideal_1m": 6.4975728507075035,
+    "artificial_2k": 5.02554154290767,
+    "uniform_hist_10m": 3.391074100010918,
+    "mist_mass_cutoff": 13.156200431834444,
+    "mist_full_1e7": 6.0464876977435456
+  },
+  "cpu": "AMD EPYC 7B13",
+  "sample_order": "interleaved: warmups per backend, then alternating backend order per repetition"
+}

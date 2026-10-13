@@ -110,7 +110,8 @@ impl Component {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Catalog {
-    pub star_id: Vec<u64>,
+    /// Star identifiers; `None` means the identity `0..n` (never materialized).
+    pub star_id: Option<Vec<u64>>,
     pub component: Vec<u32>,
     pub initial_mass: Vec<f64>,
     pub current_mass: Vec<f64>,
@@ -124,6 +125,15 @@ pub struct Catalog {
 impl Catalog {
     pub fn len(&self) -> usize {
         self.initial_mass.len()
+    }
+
+    /// Identifier of star `i`.
+    #[inline]
+    pub fn star_id_at(&self, i: usize) -> u64 {
+        match &self.star_id {
+            Some(v) => v[i],
+            None => i as u64,
+        }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -343,7 +353,7 @@ pub fn build(spec: &BuildSpec, seed: Seed, key: &str) -> Result<Population> {
     let n = initial.len();
     let mut extra = extra.into_iter();
     let catalog = Catalog {
-        star_id: (0..n as u64).collect(),
+        star_id: None,
         component: vec![0; n],
         eep: extra.next().unwrap(),
         log_l: extra.next().unwrap(),
@@ -581,7 +591,7 @@ pub fn compose(parts: &[(&Population, Option<String>)], require_equal_distance: 
             }
         }
     }
-    out.catalog.star_id = (0..out.catalog.initial_mass.len() as u64).collect();
+    out.catalog.star_id = None;
     Ok(out)
 }
 

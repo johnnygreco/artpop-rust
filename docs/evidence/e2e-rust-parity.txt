@@ -34,4 +34,4 @@ PASSED validation/test_extended_parity.py::test_sample_fraction_and_surface_dens
 PASSED validation/test_extended_parity.py::test_mist_selection_matches_upstream
 PASSED validation/test_extended_parity.py::test_spatial_samplers_match_upstream_distributions
 PASSED validation/test_extended_parity.py::test_magnitude_limited_population_photometry
-36 passed, 9 warnings in 16.59s
+36 passed, 9 warnings in 16.84s

@@ -109,6 +109,7 @@ pub struct DepositStats {
 /// Pixel binning rule with per-image constants precomputed.
 #[derive(Clone, Copy)]
 struct Binner {
+    #[cfg_attr(not(test), allow(dead_code))]
     convention: Coordinates,
     width: usize,
     height: usize,
@@ -128,37 +129,91 @@ impl Binner {
         Binner { convention, width, height, w_f, h_f, xmax, ymax, normx: w_f / (xmax - 0.0), normy: h_f / (ymax - 0.0) }
     }
 
-    /// Pixel cell of a coordinate (None = outside).
-    #[inline]
+    /// Pixel cell of a coordinate (None = outside); the oracle for tests.
+    #[cfg(test)]
     fn cell(&self, x: f64, y: f64) -> Option<usize> {
         match self.convention {
-            Coordinates::PixelCentersV1 => {
-                if x >= -0.5 && y >= -0.5 && x < self.w_f - 0.5 && y < self.h_f - 0.5 {
-                    let ix = (x + 0.5).floor() as usize;
-                    let iy = (y + 0.5).floor() as usize;
-                    (ix < self.width && iy < self.height).then_some(iy * self.width + ix)
-                } else {
-                    None
-                }
+            Coordinates::PixelCentersV1 => self.cell_centers(x, y),
+            Coordinates::ArtPop012 => self.cell_legacy(x, y),
+        }
+    }
+
+    #[inline(always)]
+    fn cell_centers(&self, x: f64, y: f64) -> Option<usize> {
+        if x >= -0.5 && y >= -0.5 && x < self.w_f - 0.5 && y < self.h_f - 0.5 {
+            // x + 0.5 is in [0, W): truncation equals floor (no libm call).
+            let ix = (x + 0.5) as usize;
+            let iy = (y + 0.5) as usize;
+            (ix < self.width && iy < self.height).then_some(iy * self.width + ix)
+        } else {
+            None
+        }
+    }
+
+    #[inline(always)]
+    fn cell_legacy(&self, x: f64, y: f64) -> Option<usize> {
+        // ix = (int)((x - xmin) * normx), with the final-bin clamp.
+        if x >= 0.0 && x < self.xmax && y >= 0.0 && y < self.ymax {
+            let mut ix = ((x - 0.0) * self.normx) as usize;
+            let mut iy = ((y - 0.0) * self.normy) as usize;
+            if ix == self.width {
+                ix -= 1;
             }
-            Coordinates::ArtPop012 => {
-                // ix = (int)((x - xmin) * normx), with the final-bin clamp.
-                if x >= 0.0 && x < self.xmax && y >= 0.0 && y < self.ymax {
-                    let mut ix = ((x - 0.0) * self.normx) as usize;
-                    let mut iy = ((y - 0.0) * self.normy) as usize;
-                    if ix == self.width {
-                        ix -= 1;
-                    }
-                    if iy == self.height {
-                        iy -= 1;
-                    }
-                    Some(iy * self.width + ix)
-                } else {
-                    None
-                }
+            if iy == self.height {
+                iy -= 1;
+            }
+            Some(iy * self.width + ix)
+        } else {
+            None
+        }
+    }
+}
+
+/// Classify one block of stars into `cells` (NONE = skipped or outside,
+/// INVALID = non-finite). Monomorphized per binning rule; all inputs are
+/// re-sliced to the block so the inner loop has no bounds checks.
+#[inline(always)]
+#[allow(clippy::too_many_arguments)]
+fn classify_block(bin: impl Fn(f64, f64) -> Option<usize>, start: usize, chunk: &mut [std::mem::MaybeUninit<u32>], xs: &[f64], ys: &[f64], weights: Option<&[f64]>, selection: Option<&[bool]>) -> Partial {
+    let n = chunk.len();
+    let (xs, ys) = (&xs[start..start + n], &ys[start..start + n]);
+    let ws = weights.map(|w| &w[start..start + n]);
+    let sel = selection.map(|s| &s[start..start + n]);
+    let mut p = Partial::default();
+    for k in 0..n {
+        if let Some(s) = sel
+            && !s[k]
+        {
+            chunk[k].write(NONE);
+            continue;
+        }
+        let (x, y) = (xs[k], ys[k]);
+        let w = match ws {
+            Some(w) => w[k],
+            None => 1.0,
+        };
+        p.selected += 1;
+        if !x.is_finite() || !y.is_finite() || !w.is_finite() {
+            p.invalid += 1;
+            p.first_invalid.get_or_insert(start + k);
+            chunk[k].write(INVALID);
+            continue;
+        }
+        p.selected_signal += w;
+        match bin(x, y) {
+            Some(idx) => {
+                chunk[k].write(idx as u32);
+                p.deposited += 1;
+                p.deposited_signal += w;
+            }
+            None => {
+                chunk[k].write(NONE);
+                p.outside += 1;
+                p.outside_signal += w;
             }
         }
     }
+    p
 }
 
 #[cfg(test)]
@@ -217,43 +272,25 @@ pub fn deposit(
     }
     const BLOCK: usize = 1 << 16;
     let binner = Binner::new(convention, width, height);
-    let mut cells: Vec<u32> = mem::with_capacity(n);
-    cells.resize(n, NONE);
-    let partials: Vec<Partial> = cells
+    // Every element of `cells` is written by the classification below, so the
+    // buffer is allocated uninitialized (no memset pass over 4 bytes per star).
+    let mut raw: Vec<std::mem::MaybeUninit<u32>> = mem::with_capacity(n);
+    // SAFETY: MaybeUninit<u32> needs no initialization.
+    unsafe { raw.set_len(n) };
+    let partials: Vec<Partial> = raw
         .par_chunks_mut(BLOCK)
         .enumerate()
-        .map(|(b, chunk)| {
-            let mut p = Partial::default();
-            for (k, c) in chunk.iter_mut().enumerate() {
-                let i = b * BLOCK + k;
-                if selection.is_some_and(|s| !s[i]) {
-                    continue;
-                }
-                let (x, y) = (xs[i], ys[i]);
-                let w = weights.map_or(1.0, |w| w[i]);
-                p.selected += 1;
-                if !x.is_finite() || !y.is_finite() || !w.is_finite() {
-                    p.invalid += 1;
-                    p.first_invalid.get_or_insert(i);
-                    *c = INVALID;
-                    continue;
-                }
-                p.selected_signal += w;
-                match binner.cell(x, y) {
-                    Some(idx) => {
-                        *c = idx as u32;
-                        p.deposited += 1;
-                        p.deposited_signal += w;
-                    }
-                    None => {
-                        p.outside += 1;
-                        p.outside_signal += w;
-                    }
-                }
-            }
-            p
+        .map(|(b, chunk)| match convention {
+            Coordinates::PixelCentersV1 => classify_block(|x, y| binner.cell_centers(x, y), b * BLOCK, chunk, xs, ys, weights, selection),
+            Coordinates::ArtPop012 => classify_block(|x, y| binner.cell_legacy(x, y), b * BLOCK, chunk, xs, ys, weights, selection),
         })
         .collect();
+    // SAFETY: classify_block wrote every element of every chunk; MaybeUninit<u32>
+    // and u32 have identical layout.
+    let cells: Vec<u32> = unsafe {
+        let mut raw = std::mem::ManuallyDrop::new(raw);
+        Vec::from_raw_parts(raw.as_mut_ptr() as *mut u32, raw.len(), raw.capacity())
+    };
     let mut st = DepositStats { generated: n as u64, convention: convention.name(), reduction: "tiled-stable-input-order-v1", ..Default::default() };
     let mut first_invalid = None;
     for p in &partials {
@@ -271,6 +308,8 @@ pub fn deposit(
             .with_details(serde_json::json!({ "row": i, "alternatives": ["invalid: drop"] })));
     }
     let mut img = Image::zeros(width, height);
+    // Tiles are accumulated by several threads at once: prefault the image.
+    mem::prefault(&mut img.data);
     let w_of = |i: usize| weights.map_or(1.0, |w| w[i]);
     if st.deposited < 1 << 18 || width * height < 1 << 18 {
         for (i, c) in cells.iter().enumerate() {
@@ -310,8 +349,15 @@ pub fn deposit(
         starts[t + 1] = o;
     }
     let total = starts[tiles];
+    // Scatter windows interleave across blocks, so these are written by all
+    // threads at once as well.
     let mut sorted_cells: Vec<u32> = mem::zeroed_u32(total);
-    let mut sorted_weights: Option<Vec<f64>> = weights.map(|_| mem::zeroed_f64(total));
+    mem::prefault(&mut sorted_cells);
+    let mut sorted_weights: Option<Vec<f64>> = weights.map(|_| {
+        let mut w = mem::zeroed_f64(total);
+        mem::prefault(&mut w);
+        w
+    });
     {
         let sc = SyncPtr(sorted_cells.as_mut_ptr());
         let sw = sorted_weights.as_mut().map(|v| SyncPtr(v.as_mut_ptr()));

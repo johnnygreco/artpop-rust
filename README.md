@@ -34,7 +34,7 @@ Every command prints one JSON result envelope on stdout (`--format text` for a h
 
 ## Verification
 
-- **Rust tests:** 94, covering unit, deviation-regression, workflow, coverage, CLI, and MCP-client tests (`cargo test --workspace`). Each of the 68 operations is exercised directly. Unit tests also pin the FITS encoder to CFITSIO's bytes and the parallel histogram, sums, samplers, and CSV parser to their sequential forms.
+- **Rust tests:** 97, covering unit, deviation-regression, workflow, coverage, CLI, and MCP-client tests (`cargo test --workspace`). Each of the 68 operations is exercised directly. Unit tests also pin the FITS encoder to CFITSIO's bytes and the parallel histogram, sums, samplers, and CSV parser to their sequential forms.
 - **Python reference comparisons:** 36 tests (`validation/`, run with `--require-rust`). These are the 5 original end-to-end workflows (histogram exactly equal, ideal image to 1.1e-15 relative L1, statistical noise, population, and grid checks), 4 comparator self-tests, and 27 extended checks: IMFs, isochrone integrals against a 50-digit oracle, magnitude limits and inversion, all SciPy interpolation kinds, all four PSF modes, wrap/fill convolution, smooth amplitudes, detector conversions, 164 filters and zero points, MIST selection bit-for-bit, and sampler statistics.
 - **MIST data:** a live `data.fetch` from mist.science reproduced the analysis grid byte for byte. MIST isochrones (on- and off-grid [Fe/H]) match ArtPop's `MISTIsochrone` exactly.
 - **Deliberate differences** from ArtPop (corrected defects, documented options) are listed with their regression tests in [IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md#deliberate-differences-from-artpop-012-rust-v1).
@@ -45,19 +45,19 @@ These are fresh-process workflow timings on a 4-vCPU AMD EPYC 7B13 VM. Rust time
 
 | Workflow | ArtPop 0.1.2 (Python) | artpop-rust | Speedup |
 | --- | ---: | ---: | ---: |
-| Catalog (100k) → count histogram → FITS | 1.27 s | 0.075 s | 17.0× |
-| Catalog (100k) → Moffat PSF → ideal image → FITS | 1.34 s | 0.097 s | 13.8× |
-| Catalog (100k) → detector noise → three FITS planes | 1.29 s | 0.107 s | 12.1× |
-| Isochrone → 100k-star SSP → CSV + photometry | 1.62 s | 0.129 s | 12.6× |
-| 7×7 weights → 100k positions → CSV | 1.38 s | 0.074 s | 18.6× |
-| 1M-star SSP → photometry | 1.68 s | 0.175 s | 9.6× |
-| 1M-star SSP → Sérsic source → 801² ideal image (41² PSF) → FITS | 2.07 s | 0.318 s | 6.5× |
-| 1M-star SSP → Plummer source → 2047² detector image (41² PSF) → 3 FITS planes | 3.66 s | 0.727 s | 5.0× |
-| 10M uniform positions → 2047² histogram → FITS | 1.83 s | 0.539 s | 3.4× |
-| MIST LSST 10 Gyr, 1e7 Msun, cutoff 29 mag → photometry | 1.94 s | 0.148 s | 13.2× |
-| MIST LSST 10 Gyr, 1e7 Msun fully sampled (2.3e7 stars) → photometry | 20.57 s | 3.40 s | 6.0× |
+| Catalog (100k) → count histogram → FITS | 1.27 s | 0.074 s | 17.2× |
+| Catalog (100k) → Moffat PSF → ideal image → FITS | 1.30 s | 0.095 s | 13.8× |
+| Catalog (100k) → detector noise → three FITS planes | 1.30 s | 0.105 s | 12.4× |
+| Isochrone → 100k-star SSP → CSV + photometry | 1.54 s | 0.117 s | 13.2× |
+| 7×7 weights → 100k positions → CSV | 1.36 s | 0.073 s | 18.5× |
+| 1M-star SSP → photometry | 1.69 s | 0.154 s | 11.0× |
+| 1M-star SSP → Sérsic source → 801² ideal image (41² PSF) → FITS | 2.11 s | 0.311 s | 6.8× |
+| 1M-star SSP → Plummer source → 2047² detector image (41² PSF) → 3 FITS planes | 3.94 s | 0.661 s | 6.0× |
+| 10M uniform positions → 2047² histogram → FITS | 1.84 s | 0.510 s | 3.6× |
+| MIST LSST 10 Gyr, 1e7 Msun, cutoff 29 mag → photometry | 2.30 s | 0.185 s | 12.4× |
+| MIST LSST 10 Gyr, 1e7 Msun fully sampled (2.3e7 stars) → photometry | 21.36 s | 3.300 s | 6.5× |
 
-The geometric-mean speedup is 9.5×, and peak memory was lower for Rust in every workflow. At 100k stars, most of ArtPop's time is its roughly 1.2 s of imports, so those rows mostly measure startup. The scale rows show compute and I/O costs. The last row is the compute-bound reference: without a magnitude cutoff ArtPop draws 2.3e7 stars and interpolates nine columns for each, which takes it 20 s; Rust spends 2.4 s building (and content-hashing 2.2 GB of) that population and 0.7 s on its photometry.
+The geometric-mean speedup is 9.9×, and peak memory was lower for Rust in every workflow. At 100k stars, most of ArtPop's time is its roughly 1.2 s of imports, so those rows mostly measure startup. The scale rows show compute and I/O costs. The last row is the compute-bound reference: without a magnitude cutoff ArtPop draws 2.3e7 stars and interpolates nine columns for each, which takes it 20 s; Rust spends 2.2 s building (half of it content-hashing and writing 2.2 GB of columns) that population and 0.6 s on its photometry.
 
 ## Documents
 

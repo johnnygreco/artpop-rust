@@ -9,8 +9,8 @@ The Rust port specified in [RUST_PORT_SPEC.md](RUST_PORT_SPEC.md) and [CLI_MCP_C
 | Crate | Lines | Responsibility |
 | --- | ---: | --- |
 | `crates/artpop-core` | ~5,500 | IMFs, interpolation (SciPy `interp1d` kinds), isochrones, populations and unresolved moments, MIST/PARSEC parsing, spatial models and categorical samplers, weighted histograms, PSFs, convolution, detector model, special functions, RNG streams, large-buffer allocation helpers. No I/O, CLI, or MCP. |
-| `crates/artpop-io` | ~900 | CSV tables (chunk-parallel parse, typed writer), FITS (native 64-bit image encoder with CFITSIO's exact header layout; reading through vendored CFITSIO, `fitsio` crate), PNG previews and RGB composites, SVG plots. |
-| `crates/artpop-service` | ~8,000 | Typed request schemas (generated JSON Schema), operation registry, executor, result envelopes, content-addressed artifact store (members hashed and written in one parallel pass, reads verified while streaming), lazy column loading, dataset manifests, jobs. |
+| `crates/artpop-io` | ~1,100 | CSV tables (chunk-parallel parse, streaming typed writer), FITS (native 64-bit image encoder and streaming writer with CFITSIO's exact header layout; reading through vendored CFITSIO, `fitsio` crate), PNG previews and RGB composites, SVG plots. |
+| `crates/artpop-service` | ~8,200 | Typed request schemas (generated JSON Schema), operation registry, executor, result envelopes, content-addressed artifact store (members hashed and written in one parallel pass, reads verified while streaming), lazy column loading, streaming exports, dataset manifests, jobs. `population.build`, `source.build`, `observe.ideal`, and `observe.artificial` report wall-clock stage timings (`timings_ms`) in their results. |
 | `crates/artpop-mcp` | ~200 | MCP server on the official `rmcp` 3.5 SDK (stdio). |
 | `crates/artpop-cli` | ~400 | `artpop-rust` binary: `invoke`, domain commands, `batch`, `mcp serve`, `worker run-job`. |
 
@@ -22,7 +22,7 @@ Requirements: Rust 1.99 (pinned by `rust-toolchain.toml`), a C and C++ compiler,
 
 ```bash
 cargo build --release          # target/release/artpop-rust (~17 MB, Linux x86_64)
-cargo test --workspace         # 94 tests: core, io, service integration, CLI/MCP
+cargo test --workspace         # 97 tests: core, io, service integration, CLI/MCP
 ```
 
 Only Linux x86_64 has been built and tested. The release profile uses thin LTO; `cargo test` in the default (debug) profile is slower but exercises the same code.

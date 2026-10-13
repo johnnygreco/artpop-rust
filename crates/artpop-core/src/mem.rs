@@ -42,6 +42,49 @@ pub fn advise_huge<T>(v: &mut Vec<T>) {
     }
 }
 
+/// Populate the pages behind a large allocation up front, in one kernel
+/// call where available (`MADV_POPULATE_WRITE`, Linux 5.14+) and otherwise by
+/// touching one byte per page from the calling thread. Use this only for
+/// buffers that several threads then write at random (histogram tiles,
+/// scatter windows, convolution output): concurrent faults on the same huge
+/// pages are many times slower than this pass, whereas a buffer filled
+/// sequentially per thread faults faster on its own than it can be
+/// prefaulted here. Zeroed buffers stay zero; uninitialized capacity stays
+/// uninitialized from the program's point of view.
+pub fn prefault<T>(v: &mut Vec<T>) {
+    let bytes = v.capacity() * std::mem::size_of::<T>();
+    if bytes < HUGE_PAGE_ADVICE_MIN_BYTES {
+        return;
+    }
+    let page = 4096usize;
+    let start = v.as_mut_ptr() as usize;
+    let aligned = (start + page - 1) & !(page - 1);
+    let end = (start + bytes) & !(page - 1);
+    if end <= aligned {
+        return;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        // SAFETY: the range lies inside the live allocation owned by `v`;
+        // MADV_POPULATE_WRITE only pre-faults pages (contents unchanged).
+        let rc = unsafe { libc::madvise(aligned as *mut libc::c_void, end - aligned, libc::MADV_POPULATE_WRITE) };
+        if rc == 0 {
+            return;
+        }
+    }
+    // Portable fallback: one volatile read-modify-write of a byte per page
+    // (writing back the same value keeps the contents unchanged).
+    let mut addr = aligned;
+    while addr < end {
+        // SAFETY: `addr` is inside the allocation; the byte is rewritten unchanged.
+        unsafe {
+            let p = addr as *mut u8;
+            std::ptr::write_volatile(p, std::ptr::read_volatile(p));
+        }
+        addr += page;
+    }
+}
+
 /// `vec![0.0; n]` (zeroed by the allocator, untouched) with huge-page advice.
 pub fn zeroed_f64(n: usize) -> Vec<f64> {
     let mut v = vec![0.0f64; n];

@@ -1,6 +1,6 @@
 //! Artifact listing, inspection, import, export, and aliasing.
 
-use crate::codec::{LazyPopulation, SourceLoad, image_member, load_positions, load_source_with, positions_bundle, read_image};
+use crate::codec::{LazyPopulation, SourceLoad, image_member, load_positions, load_source_with, positions_bundle};
 use crate::ops::population::MagFrame;
 use artpop_io::csv::Column;
 use crate::store::{Manifest, Member, Store, sha256_hex};
@@ -192,6 +192,53 @@ pub fn write_atomic(dest: &Path, bytes: &[u8], overwrite: bool) -> Result<()> {
     })
 }
 
+/// Sink for [`write_atomic_streaming`]: buffered file writes plus a running digest.
+pub struct AtomicSink {
+    file: std::io::BufWriter<std::fs::File>,
+    hasher: sha2::Sha256,
+    path: PathBuf,
+}
+
+impl AtomicSink {
+    pub fn push(&mut self, bytes: &[u8]) -> Result<()> {
+        use sha2::Digest;
+        use std::io::Write;
+        let (written, ()) = rayon::join(|| self.file.write_all(bytes), || self.hasher.update(bytes));
+        written.map_err(|e| Error::io(format!("Cannot write {}: {e}", self.path.display())))
+    }
+}
+
+/// Write a file atomically from pieces produced by `fill` (temp file + rename),
+/// returning the SHA-256 hex digest of the written bytes.
+pub fn write_atomic_streaming(dest: &Path, overwrite: bool, fill: impl FnOnce(&mut AtomicSink) -> Result<()>) -> Result<String> {
+    use sha2::Digest;
+    use std::io::Write;
+    if dest.exists() && !overwrite {
+        return Err(Error::invalid("/destination", format!("{} exists; set overwrite to replace it.", dest.display())));
+    }
+    if let Some(p) = dest.parent() {
+        std::fs::create_dir_all(p).map_err(|e| Error::io(format!("Cannot create {}: {e}", p.display())))?;
+    }
+    let tmp = tmp_path(dest);
+    let file = std::fs::File::create(&tmp).map_err(|e| Error::io(format!("Cannot write {}: {e}", tmp.display())))?;
+    let mut sink = AtomicSink { file: std::io::BufWriter::with_capacity(1 << 20, file), hasher: sha2::Sha256::new(), path: tmp.clone() };
+    let outcome = fill(&mut sink).and_then(|()| sink.file.flush().map_err(|e| Error::io(format!("Cannot write {}: {e}", tmp.display()))));
+    if let Err(e) = outcome {
+        let _ = std::fs::remove_file(&tmp);
+        return Err(e);
+    }
+    drop(sink.file);
+    std::fs::rename(&tmp, dest).map_err(|e| {
+        let _ = std::fs::remove_file(&tmp);
+        Error::io(format!("Cannot publish {}: {e}", dest.display()))
+    })?;
+    let mut hex = String::with_capacity(64);
+    for b in sink.hasher.finalize() {
+        hex.push_str(&format!("{b:02x}"));
+    }
+    Ok(hex)
+}
+
 fn tmp_path(dest: &Path) -> PathBuf {
     let name = dest.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
     dest.with_file_name(format!(".{name}.tmp-{}", uuid::Uuid::new_v4().simple()))
@@ -220,8 +267,12 @@ pub fn export(ctx: &Ctx, req: ExportRequest) -> Result<OpOutput> {
             if !l.has(&member) {
                 return Err(Error::invalid("/plane", format!("No plane '{member}'.")).with_details(json!({ "available": l.manifest.members.iter().map(|m| &m.name).collect::<Vec<_>>() })));
             }
-            let img = read_image(&l, &member)?;
-            let unit = l.info(&member)?.unit.clone().unwrap_or_default();
+            let info = l.info(&member)?;
+            if info.shape.len() != 2 {
+                return Err(Error::new(ErrorCode::DataCorrupt, format!("Member '{member}' is not two-dimensional.")));
+            }
+            let (height, width) = (info.shape[0], info.shape[1]);
+            let unit = info.unit.clone().unwrap_or_default();
             use artpop_io::fits::Key;
             let mut keys: Vec<(&str, Key, &str)> = vec![
                 ("BUNIT", Key::Str(fits_key_str(&unit)), "pixel unit"),
@@ -248,8 +299,17 @@ pub fn export(ctx: &Ctx, req: ExportRequest) -> Result<OpOutput> {
             if let Some(p) = dest.parent() {
                 std::fs::create_dir_all(p).map_err(|e| Error::io(e.to_string()))?;
             }
+            // The plane is streamed from the artifact into the FITS file: each
+            // chunk is digest-verified, byte-swapped, hashed, and written while
+            // the next one is read. The file is published only after the
+            // member's digest has verified.
             let tmp = tmp_path(&dest);
-            let digest = artpop_io::fits::write_image(&tmp, &img, &keys, &cards).inspect_err(|_| {
+            let streamed = (|| -> Result<String> {
+                let mut writer = artpop_io::fits::ImageWriter::create(&tmp, width, height, &keys, &cards)?;
+                l.stream_f64_bytes(&member, |chunk| writer.push_le_f64_bytes(chunk))?;
+                writer.finish()
+            })();
+            let digest = streamed.inspect_err(|_| {
                 let _ = std::fs::remove_file(&tmp);
             })?;
             std::fs::rename(&tmp, &dest).map_err(|e| {
@@ -257,7 +317,7 @@ pub fn export(ctx: &Ctx, req: ExportRequest) -> Result<OpOutput> {
                 Error::io(format!("Cannot publish {}: {e}", dest.display()))
             })?;
             written_digest = Some(digest);
-            json!({ "plane": member, "width": img.width, "height": img.height })
+            json!({ "plane": member, "width": width, "height": height })
         }
         ExportFormat::Csv => {
             let (names, cols): (Vec<String>, Vec<Column<'_>>);
@@ -347,9 +407,9 @@ pub fn export(ctx: &Ctx, req: ExportRequest) -> Result<OpOutput> {
                 _ => return Err(Error::new(ErrorCode::UnsupportedFormat, format!("{kind} artifacts have no CSV form.")).at("/format")),
             }
             let rows = cols.first().map_or(0, |c| c.len());
-            let text = artpop_io::csv::write_columns(&names, &cols);
-            let (written, digest) = rayon::join(|| write_atomic(&dest, text.as_bytes(), req.overwrite), || sha256_hex(text.as_bytes()));
-            written?;
+            // Rows are formatted in waves and each wave is written and hashed
+            // while the next one is formatted.
+            let digest = write_atomic_streaming(&dest, req.overwrite, |out| artpop_io::csv::write_columns_to(&names, &cols, |piece| out.push(piece)))?;
             written_digest = Some(digest);
             json!({ "rows": rows, "columns": names })
         }

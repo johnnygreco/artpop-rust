@@ -259,9 +259,13 @@ struct PopMeta<'a> {
 }
 
 pub fn build(ctx: &Ctx, req: BuildRequest) -> Result<OpOutput> {
+    let mut timings = crate::ops::Timings::start();
     let (p, iso_id, iso_ref) = build_population(ctx, &req, "component-0")?;
+    timings.lap("build");
     let mut res = population_summary(&p);
     let r = put_population(ctx, p, vec![iso_id.clone()])?;
+    timings.lap("store");
+    res["timings_ms"] = timings.json();
     res["population_artifact_id"] = json!(r.artifact_id);
     res["isochrone_artifact_id"] = json!(iso_id);
     let mut out = OpOutput::new(res);
@@ -442,7 +446,7 @@ pub fn population_column(p: &Population, name: &str, frame: MagFrame, pointer: &
     let c = &p.catalog;
     let f = |v: &[f64]| v.iter().map(|x| artpop_core::error::finite_or_null(*x)).collect::<Vec<_>>();
     Ok(match name {
-        "star_id" => c.star_id.iter().map(|v| json!(v)).collect(),
+        "star_id" => (0..c.len()).map(|i| json!(c.star_id_at(i))).collect(),
         "component" => c.component.iter().map(|v| json!(v)).collect(),
         "initial_mass" => f(&c.initial_mass),
         "current_mass" | "star_mass" => f(&c.current_mass),
@@ -464,7 +468,7 @@ pub fn population_column(p: &Population, name: &str, frame: MagFrame, pointer: &
 pub fn population_numeric(p: &Population, name: &str, frame: MagFrame, pointer: &str) -> Result<Vec<f64>> {
     let c = &p.catalog;
     Ok(match name {
-        "star_id" => c.star_id.iter().map(|v| *v as f64).collect(),
+        "star_id" => (0..c.len()).map(|i| c.star_id_at(i) as f64).collect(),
         "component" => c.component.iter().map(|v| *v as f64).collect(),
         "initial_mass" => c.initial_mass.clone(),
         "current_mass" | "star_mass" => c.current_mass.clone(),
@@ -555,14 +559,26 @@ pub fn photometry(ctx: &Ctx, req: PhotometryRequest) -> Result<OpOutput> {
     };
     let bands = if req.bands.is_empty() { h.filters.clone() } else { req.bands.clone() };
     let component = if h.components.len() > 1 { p.component()? } else { None };
-    let band_sums = |b: &str, pointer: &str| -> Result<pop::BandSums> {
-        let bi = h.filter_index(b, pointer)?;
-        let col = p.abs_mags(bi)?;
-        Ok(pop::band_sums_from_columns(&h.components, bi, &col, component.as_deref(), mask.as_deref(), &comps))
+    // Resolve every band first (metrics and colors), then read all of their
+    // columns in one parallel pass.
+    let mut indices: Vec<usize> = Vec::new();
+    for (i, b) in bands.iter().enumerate() {
+        indices.push(h.filter_index(b, &format!("/bands/{i}"))?);
+    }
+    for (i, [blue, red]) in req.colors.iter().enumerate() {
+        indices.push(h.filter_index(blue, &format!("/colors/{i}/0"))?);
+        indices.push(h.filter_index(red, &format!("/colors/{i}/1"))?);
+    }
+    indices.sort_unstable();
+    indices.dedup();
+    let columns = p.abs_mags_many(&indices)?;
+    let sums_for = |bi: usize| -> pop::BandSums {
+        let col = &columns[indices.binary_search(&bi).expect("band column loaded")];
+        pop::band_sums_from_columns(&h.components, bi, col, component.as_deref(), mask.as_deref(), &comps)
     };
     let mut sums = IndexMap::new();
-    for (i, b) in bands.iter().enumerate() {
-        sums.insert(b.clone(), band_sums(b, &format!("/bands/{i}"))?);
+    for b in &bands {
+        sums.insert(b.clone(), sums_for(h.filter_index(b, "/bands")?));
     }
     let mut out = serde_json::Map::new();
     for m in &req.metrics {
@@ -578,7 +594,7 @@ pub fn photometry(ctx: &Ctx, req: PhotometryRequest) -> Result<OpOutput> {
     if !req.colors.is_empty() {
         let mut c = IndexMap::new();
         for (i, [blue, red]) in req.colors.iter().enumerate() {
-            let get = |b: &String, pointer: String| -> Result<f64> { Ok(match sums.get(b) { Some(s) => s.flux(), None => band_sums(b, &pointer)?.flux() }) };
+            let get = |b: &String, pointer: String| -> Result<f64> { Ok(match sums.get(b) { Some(s) => s.flux(), None => sums_for(h.filter_index(b, &pointer)?).flux() }) };
             let fb = get(blue, format!("/colors/{i}/0"))?;
             let fr = get(red, format!("/colors/{i}/1"))?;
             c.insert(format!("{blue}-{red}"), if fb > 0.0 && fr > 0.0 { json!(-2.5 * (fb / fr).log10()) } else { Value::Null });
