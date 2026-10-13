@@ -5,12 +5,16 @@ streams), so the images are statistically equivalent rather than pixel-
 identical; every panel pair uses one display stretch computed from the
 ArtPop image and applied to both. Produces, in --out-dir:
 
-  side_by_side_rgb.png            new three-band (g, r, i) Sersic galaxy with detector
-                                  noise, composed with identical Lupton asinh parameters
-  side_by_side_sersic_ideal.png   801^2 noise-free Sersic image from the scale benchmark,
-                                  plus azimuthally averaged surface-brightness profiles
+  side_by_side_rgb.png            a 2e7-star Sersic galaxy: three-band (g, r, i) detector
+                                  images composed with identical Lupton asinh parameters
+  side_by_side_sersic_ideal.png   the same galaxy as a noise-free i-band image, with
+                                  azimuthally averaged surface-brightness profiles and
+                                  measured shape parameters
   side_by_side_plummer.png        2047^2 detector image of a Plummer cluster from the
                                   scale benchmark (central crop), plus radial profiles
+
+A galaxy of 2e7 stars keeps the realization scatter of the total light from
+bright giants near 1%, so the two independent realizations are visibly the same.
 
 Usage:
   python tools/side_by_side.py --rust-bin target/release/artpop-rust --out-dir docs/images \
@@ -32,7 +36,7 @@ DIM = 801
 PIXEL_SCALE = 0.2
 DISTANCE_MPC = 3.0
 R_EFF_PC = 300.0
-N_STARS = 4_000_000
+N_STARS = 20_000_000
 
 
 def reference_imports():
@@ -51,7 +55,9 @@ def python_rgb_images(np, artpop):
     src = artpop.SersicSP(ssp, r_eff=R_EFF_PC / 1000.0, n=1.0, theta=40, ellip=0.4, xy_dim=DIM, pixel_scale=PIXEL_SCALE)
     psf = artpop.moffat_psf(0.7, pixel_scale=PIXEL_SCALE, shape=41)
     imager = artpop.ArtImager("LSST", diameter=6.4, read_noise=4, random_state=12)
-    return {b: imager.observe(src, b, exptime=EXPTIME, sky_sb=SKY[b], psf=psf, zpt=27).image for b in BANDS}
+    images = {b: imager.observe(src, b, exptime=EXPTIME, sky_sb=SKY[b], psf=psf, zpt=27).image for b in BANDS}
+    images["ideal_i"] = artpop.IdealImager().observe(src, "LSST_i", psf=psf, zpt=27).image
+    return images
 
 
 class Rust:
@@ -86,7 +92,27 @@ def rust_rgb_images(np, binary, work):
         dest = cli.work / f"rust_{b}.fits"
         cli.invoke("artifact.export", artifact_id=obs, destination=str(dest), format="fits", plane="image", overwrite=True)
         images[b] = fits.getdata(dest).astype(float)
+    ideal = cli.artifact(cli.invoke("observe.ideal", source={"artifact_id": src}, bandpass="LSST_i", psf={"artifact_id": psf}, output_zpt=27), "observation")
+    dest = cli.work / "rust_ideal_i.fits"
+    cli.invoke("artifact.export", artifact_id=ideal, destination=str(dest), format="fits", plane="image", overwrite=True)
+    images["ideal_i"] = fits.getdata(dest).astype(float)
     return images
+
+
+def shape(np, img):
+    """Flux-weighted centroid, second-moment ellipticity and position angle, circular half-light radius."""
+    yy, xx = np.indices(img.shape)
+    f = img.sum()
+    xc, yc = (img * xx).sum() / f, (img * yy).sum() / f
+    mxx, myy, mxy = ((img * (xx - xc) ** 2).sum() / f, (img * (yy - yc) ** 2).sum() / f, (img * (xx - xc) * (yy - yc)).sum() / f)
+    pa = 0.5 * np.degrees(np.arctan2(2 * mxy, mxx - myy))
+    d = np.sqrt((0.5 * (mxx - myy)) ** 2 + mxy ** 2)
+    ellip = 1 - np.sqrt((0.5 * (mxx + myy) - d) / (0.5 * (mxx + myy) + d))
+    r = np.hypot(xx - xc, yy - yc).ravel()
+    o = np.argsort(r)
+    cum = np.cumsum(img.ravel()[o])
+    r50 = r[o][np.searchsorted(cum, 0.5 * cum[-1])]
+    return dict(mag=27 - 2.5 * np.log10(f), xc=xc, yc=yc, ellip=ellip, pa=pa, r50=r50 * PIXEL_SCALE)
 
 
 def radial_profile(np, img, zpt=27.0, pixel_scale=PIXEL_SCALE, nbins=60, rmax_pix=None):
@@ -144,27 +170,30 @@ def main():
     fig.savefig(args.out_dir / "side_by_side_rgb.png", dpi=100)
     plt.close(fig)
 
-    # ---- 2. Sersic ideal image from the scale benchmark (801^2, 1M stars, 41^2 Moffat PSF).
-    sersic = {k: fits.getdata(args.scale_dir / "sersic_ideal_1m" / b / "sample0" / "image.fits").astype(float) for k, b in [("py", "python"), ("rs", "rust")]}
+    # ---- 2. The same galaxy as a noise-free i-band image, with profiles and measured shapes.
+    sersic = {"py": py["ideal_i"], "rs": rs["ideal_i"]}
     vmin, vmax = np.percentile(sersic["py"], [0.5, 99.95])
     norm = ImageNormalize(vmin=vmin, vmax=vmax, stretch=AsinhStretch(0.02))
-    fig, axes = plt.subplots(1, 3, figsize=(16, 5.6), gridspec_kw={"width_ratios": [1, 1, 1.15]})
+    fig, axes = plt.subplots(1, 3, figsize=(16, 5.9), gridspec_kw={"width_ratios": [1, 1, 1.15]})
     for ax, key in zip(axes[:2], ["py", "rs"]):
         ax.imshow(sersic[key], origin="lower", cmap="gray_r", norm=norm, interpolation="nearest")
-        ax.set_title(f"{label[key]}: total mag {27 - 2.5 * np.log10(sersic[key].sum()):.3f}")
+        m = shape(np, sersic[key])
+        ax.set_title(label[key])
+        ax.text(0.02, 0.02, f"total i = {m['mag']:.3f}   r50 = {m['r50']:.2f}\"\ncenter = ({m['xc']:.1f}, {m['yc']:.1f})   e = {m['ellip']:.3f}   PA = {m['pa']:.1f}°", transform=ax.transAxes, fontsize=9, va="bottom")
         ax.set_xticks([])
         ax.set_yticks([])
     for key, color in [("py", "C0"), ("rs", "C3")]:
-        rr, mu, _ = radial_profile(np, sersic[key], nbins=80)
-        axes[2].plot(rr, mu, color=color, lw=1.6, label=label[key], alpha=0.85)
+        rr, mu, mean = radial_profile(np, sersic[key], nbins=80)
+        ok = mean > 0
+        axes[2].plot(rr[ok], mu[ok], color=color, lw=1.6, label=label[key], alpha=0.85)
     axes[2].invert_yaxis()
     axes[2].set_xlabel("radius [arcsec]")
     axes[2].set_ylabel("mean surface brightness [mag/arcsec²] (zpt 27)")
     axes[2].set_title("Azimuthally averaged profiles")
     axes[2].grid(alpha=0.3)
     axes[2].legend()
-    fig.suptitle("Benchmark workflow: 1M-star SSP → Sérsic source → 801² ideal image (41² Moffat PSF). Same asinh stretch; independent random realizations.", fontsize=10)
-    fig.tight_layout(rect=(0, 0, 1, 0.94))
+    fig.suptitle(f"The same {N_STARS:,}-star Sérsic dwarf (n=1, r_eff={R_EFF_PC:.0f} pc, e=0.4, PA=40°) at {DISTANCE_MPC:.0f} Mpc as a noise-free i-band image (41² Moffat PSF).\nSame asinh stretch; independent random realizations.", fontsize=10)
+    fig.tight_layout(rect=(0, 0, 1, 0.92))
     fig.savefig(args.out_dir / "side_by_side_sersic_ideal.png", dpi=100)
     plt.close(fig)
 
