@@ -1,6 +1,6 @@
 //! Population construction, composition, photometry, and queries.
 
-use crate::codec::{load_isochrone, load_population, population_bundle};
+use crate::codec::{LazyPopulation, load_isochrone, load_population, population_bundle, population_bundle_owned};
 use crate::ops::isochrone::{MistRequest, mist_isochrone, put_isochrone};
 use crate::ops::{mag_or_null, pick};
 use crate::store::Member;
@@ -184,7 +184,14 @@ pub fn build_population(ctx: &Ctx, req: &BuildRequest, stage_key: &str) -> Resul
     Ok((p, iso_id, iso_ref))
 }
 
-pub fn put_population(ctx: &Ctx, p: &Population, inputs: Vec<String>) -> Result<crate::store::ArtifactRef> {
+/// Store a population, consuming it (its columns move into the artifact).
+pub fn put_population(ctx: &Ctx, p: Population, inputs: Vec<String>) -> Result<crate::store::ArtifactRef> {
+    let (meta, members) = population_bundle_owned(p);
+    ctx.put("population", meta, members, inputs)
+}
+
+/// Store a population that the caller keeps using (columns are copied).
+pub fn put_population_ref(ctx: &Ctx, p: &Population, inputs: Vec<String>) -> Result<crate::store::ArtifactRef> {
     let (meta, members) = population_bundle(p);
     ctx.put("population", meta, members, inputs)
 }
@@ -253,8 +260,8 @@ struct PopMeta<'a> {
 
 pub fn build(ctx: &Ctx, req: BuildRequest) -> Result<OpOutput> {
     let (p, iso_id, iso_ref) = build_population(ctx, &req, "component-0")?;
-    let r = put_population(ctx, &p, vec![iso_id.clone()])?;
     let mut res = population_summary(&p);
+    let r = put_population(ctx, p, vec![iso_id.clone()])?;
     res["population_artifact_id"] = json!(r.artifact_id);
     res["isochrone_artifact_id"] = json!(iso_id);
     let mut out = OpOutput::new(res);
@@ -292,12 +299,13 @@ pub fn compose(ctx: &Ctx, req: ComposeRequest) -> Result<OpOutput> {
     let pops: Vec<Population> = req.populations.iter().enumerate().map(|(i, p)| load_population(ctx, &p.artifact_id, &format!("/populations/{i}/artifact_id"))).collect::<Result<_>>()?;
     let parts: Vec<(&Population, Option<String>)> = pops.iter().zip(&req.populations).map(|(p, r)| (p, r.label.clone())).collect();
     let c = pop::compose(&parts, req.require_equal_distance)?;
-    let r = put_population(ctx, &c, req.populations.iter().map(|p| p.artifact_id.clone()).collect())?;
+    drop(pops);
     let total_n: f64 = c.components.iter().map(|x| x.num_discrete as f64 + x.unresolved.expected_count).sum();
     let mut res = population_summary(&c);
-    res["population_artifact_id"] = json!(r.artifact_id);
     res["number_fractions"] = json!(c.components.iter().map(|x| (x.num_discrete as f64 + x.unresolved.expected_count) / total_n).collect::<Vec<_>>());
     res["mass_fractions"] = json!(c.components.iter().map(|x| x.total_mass / c.total_mass()).collect::<Vec<_>>());
+    let r = put_population(ctx, c, req.populations.iter().map(|p| p.artifact_id.clone()).collect())?;
+    res["population_artifact_id"] = json!(r.artifact_id);
     Ok(OpOutput::new(res).with(r))
 }
 
@@ -331,6 +339,53 @@ pub fn population_mask(ctx: &Ctx, p: &Population, sel: &Selection, pointer: &str
         }
         Selection::Phases { phases } => {
             let eep = p.catalog.eep.as_ref().ok_or_else(|| Error::new(ErrorCode::DataMissing, "Phase selection needs EEP values (MIST isochrones or an eep_column).").at(pointer))?;
+            for ph in phases {
+                pop::in_phase(ph, 0.0).map_err(|e| e.at(pointer))?;
+            }
+            Some(eep.iter().map(|e| phases.iter().any(|ph| pop::in_phase(ph, *e).unwrap_or(false))).collect())
+        }
+        Selection::Rows { start, stop, step } => {
+            if *step == 0 {
+                return Err(Error::invalid(pointer, "Row step must be positive."));
+            }
+            let stop = stop.unwrap_or(n).min(n);
+            let mut m = vec![false; n];
+            for i in (*start..stop).step_by(*step) {
+                m[i] = true;
+            }
+            Some(m)
+        }
+        Selection::Mask { artifact_id } => {
+            let l = ctx.store().load(artifact_id, pointer, &["mask"])?;
+            let m = l.bools("mask")?;
+            if m.len() != n {
+                return Err(Error::new(ErrorCode::ShapeMismatch, "Mask length differs from the population size.").at(pointer));
+            }
+            Some(m)
+        }
+        Selection::Labels { .. } => return Err(Error::invalid(pointer, "Label selections apply to sources; use components, phases, rows, or a mask for populations.")),
+    })
+}
+
+/// [`population_mask`] for a lazily loaded population: only the columns a
+/// selection needs are read.
+pub fn lazy_population_mask(ctx: &Ctx, p: &LazyPopulation, sel: &Selection, pointer: &str) -> Result<Option<Vec<bool>>> {
+    let n = p.len();
+    Ok(match sel {
+        Selection::All => None,
+        Selection::Components { ids } => {
+            for id in ids {
+                if *id as usize >= p.header.components.len() {
+                    return Err(Error::invalid(pointer, format!("Unknown component id {id}.")));
+                }
+            }
+            match p.component()? {
+                Some(c) => Some(c.iter().map(|c| ids.contains(c)).collect()),
+                None => Some(vec![ids.contains(&0); n]),
+            }
+        }
+        Selection::Phases { phases } => {
+            let eep = p.eep()?.ok_or_else(|| Error::new(ErrorCode::DataMissing, "Phase selection needs EEP values (MIST isochrones or an eep_column).").at(pointer))?;
             for ph in phases {
                 pop::in_phase(ph, 0.0).map_err(|e| e.at(pointer))?;
             }
@@ -488,19 +543,26 @@ pub struct PhotometryRequest {
 }
 
 pub fn photometry(ctx: &Ctx, req: PhotometryRequest) -> Result<OpOutput> {
-    let p = load_population(ctx, &req.artifact_id, "/artifact_id")?;
-    let mask = population_mask(ctx, &p, &req.selection, "/selection")?;
+    // Only the requested band columns (and the columns a selection needs) are read.
+    let p = LazyPopulation::load(ctx, &req.artifact_id, "/artifact_id")?;
+    let h = &p.header;
+    let mask = lazy_population_mask(ctx, &p, &req.selection, "/selection")?;
     let comps: Vec<u32> = match (&req.unresolved, &req.selection) {
         (UnresolvedPolicy::Exclude, _) => vec![],
         (UnresolvedPolicy::Auto, s) if !s.is_all() => vec![],
         (_, Selection::Components { ids }) => ids.clone(),
-        _ => (0..p.components.len() as u32).collect(),
+        _ => (0..h.components.len() as u32).collect(),
     };
-    let bands = if req.bands.is_empty() { p.filters.clone() } else { req.bands.clone() };
+    let bands = if req.bands.is_empty() { h.filters.clone() } else { req.bands.clone() };
+    let component = if h.components.len() > 1 { p.component()? } else { None };
+    let band_sums = |b: &str, pointer: &str| -> Result<pop::BandSums> {
+        let bi = h.filter_index(b, pointer)?;
+        let col = p.abs_mags(bi)?;
+        Ok(pop::band_sums_from_columns(&h.components, bi, &col, component.as_deref(), mask.as_deref(), &comps))
+    };
     let mut sums = IndexMap::new();
     for (i, b) in bands.iter().enumerate() {
-        let bi = p.filter_index(b).map_err(|e| e.at(&format!("/bands/{i}")))?;
-        sums.insert(b.clone(), p.band_sums(bi, mask.as_deref(), &comps));
+        sums.insert(b.clone(), band_sums(b, &format!("/bands/{i}"))?);
     }
     let mut out = serde_json::Map::new();
     for m in &req.metrics {
@@ -516,8 +578,9 @@ pub fn photometry(ctx: &Ctx, req: PhotometryRequest) -> Result<OpOutput> {
     if !req.colors.is_empty() {
         let mut c = IndexMap::new();
         for (i, [blue, red]) in req.colors.iter().enumerate() {
-            let fb = p.band_sums(p.filter_index(blue).map_err(|e| e.at(&format!("/colors/{i}/0")))?, mask.as_deref(), &comps).flux();
-            let fr = p.band_sums(p.filter_index(red).map_err(|e| e.at(&format!("/colors/{i}/1")))?, mask.as_deref(), &comps).flux();
+            let get = |b: &String, pointer: String| -> Result<f64> { Ok(match sums.get(b) { Some(s) => s.flux(), None => band_sums(b, &pointer)?.flux() }) };
+            let fb = get(blue, format!("/colors/{i}/0"))?;
+            let fr = get(red, format!("/colors/{i}/1"))?;
             c.insert(format!("{blue}-{red}"), if fb > 0.0 && fr > 0.0 { json!(-2.5 * (fb / fr).log10()) } else { Value::Null });
         }
         out.insert("colors".into(), json!(c));
@@ -526,7 +589,7 @@ pub fn photometry(ctx: &Ctx, req: PhotometryRequest) -> Result<OpOutput> {
     out.insert("status".into(), json!({ "no_flux_bands": no_flux }));
     out.insert("moments".into(), json!(sums));
     out.insert("unresolved_components_included".into(), json!(comps));
-    out.insert("magnitude_system".into(), json!(p.magnitude_system));
+    out.insert("magnitude_system".into(), json!(h.magnitude_system));
     Ok(OpOutput::new(Value::Object(out)))
 }
 
@@ -554,8 +617,8 @@ pub fn update(ctx: &Ctx, req: UpdateRequest) -> Result<OpOutput> {
     if new.components.iter().any(|c| c.mag_limit.is_some()) {
         ctx.warn("CUTOFF_UNCHANGED", "Discrete/unresolved membership was decided at build time; changing distance or extinction does not re-apply the magnitude limit.");
     }
-    let r = put_population(ctx, &new, vec![req.artifact_id.clone()])?;
     let mut res = population_summary(&new);
+    let r = put_population(ctx, new, vec![req.artifact_id.clone()])?;
     res["population_artifact_id"] = json!(r.artifact_id);
     Ok(OpOutput::new(res).with(r))
 }

@@ -66,9 +66,18 @@ fn pid_alive(pid: u32) -> bool {
     Path::new(&format!("/proc/{pid}")).exists() && std::fs::read_to_string(format!("/proc/{pid}/stat")).map(|s| !s.contains(") Z ")).unwrap_or(false)
 }
 
+/// PID recorded by the submitter in `worker.pid` (separate from the state
+/// file, so the worker's own state writes are never overwritten).
+fn spawned_pid(dir: &Path) -> Option<u32> {
+    std::fs::read_to_string(dir.join("worker.pid")).ok().and_then(|s| s.trim().parse().ok())
+}
+
 /// Refresh state: a running job whose worker vanished is `interrupted`.
 fn refresh(dir: &Path) -> Result<JobState> {
     let mut s = read_state(dir)?;
+    if s.worker_pid.is_none() {
+        s.worker_pid = spawned_pid(dir);
+    }
     if (s.state == "running" || s.state == "queued") && s.worker_pid.is_some_and(|p| !pid_alive(p)) && !dir.join("result.json").exists() {
         s.state = if dir.join("cancel").exists() { "cancelled".into() } else { "interrupted".into() };
         s.finished_unix_ms = Some(now_ms());
@@ -116,7 +125,7 @@ pub fn submit(ctx: &Ctx, req: SubmitRequest) -> Result<OpOutput> {
     let dir = job_dir(root, &id)?;
     std::fs::create_dir_all(&dir).map_err(|e| Error::io(e.to_string()))?;
     std::fs::write(dir.join("request.json"), serde_json::to_vec_pretty(&json!({ "operation": def.id, "request": req.request })).unwrap()).map_err(|e| Error::io(e.to_string()))?;
-    let mut state = JobState {
+    let state = JobState {
         job_id: id.clone(),
         operation: def.id.into(),
         state: "queued".into(),
@@ -156,8 +165,10 @@ pub fn submit(ctx: &Ctx, req: SubmitRequest) -> Result<OpOutput> {
         cmd.process_group(0);
     }
     let child = cmd.spawn().map_err(|e| Error::internal(format!("Cannot start the job worker: {e}")))?;
-    state.worker_pid = Some(child.id());
-    write_state(&dir, &state)?;
+    // The worker rewrites state.json (running, its own PID) as soon as it
+    // starts, possibly before this line; recording the PID in a separate file
+    // avoids a read-modify-write race that would revert its state to queued.
+    std::fs::write(dir.join("worker.pid"), child.id().to_string()).map_err(|e| Error::io(e.to_string()))?;
     Ok(OpOutput::new(json!({ "job_id": id, "state": "queued", "worker_pid": child.id(), "status_request": { "operation": "job.status", "request": { "schema_version": "1", "job_id": id } } })))
 }
 

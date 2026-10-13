@@ -17,6 +17,7 @@ pub mod imager;
 pub mod imf;
 pub mod interp;
 pub mod isochrone;
+pub mod mem;
 pub mod mist;
 pub mod population;
 pub mod psf;

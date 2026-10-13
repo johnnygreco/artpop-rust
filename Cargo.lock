@@ -84,6 +84,7 @@ dependencies = [
 name = "artpop-core"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "libm",
  "rand_chacha",
  "rand_core",
@@ -101,11 +102,14 @@ version = "0.1.0"
 dependencies = [
  "artpop-core",
  "fitsio",
+ "itoa",
  "png",
+ "rayon",
  "ryu",
  "schemars",
  "serde",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]

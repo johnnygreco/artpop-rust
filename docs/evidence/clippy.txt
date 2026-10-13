@@ -1,6 +1,1 @@
-    Checking artpop-core v0.1.0 (/home/ubuntu/one-offs/artpop-rust/crates/artpop-core)
-    Checking artpop-io v0.1.0 (/home/ubuntu/one-offs/artpop-rust/crates/artpop-io)
-    Checking artpop-service v0.1.0 (/home/ubuntu/one-offs/artpop-rust/crates/artpop-service)
-    Checking artpop-mcp v0.1.0 (/home/ubuntu/one-offs/artpop-rust/crates/artpop-mcp)
-    Checking artpop-cli v0.1.0 (/home/ubuntu/one-offs/artpop-rust/crates/artpop-cli)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.11s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.46s

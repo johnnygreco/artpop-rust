@@ -1,7 +1,7 @@
 //! Sources: positioned stars plus smooth (unresolved) light components.
 
 use crate::codec::{Labels, SmoothComponent, SmoothProfile, SourceData, label_json, load_population, load_positions, load_source, source_bundle};
-use crate::ops::population::{BuildRequest as PopBuild, IsochroneInput, SamplingOptions, build_population, put_population};
+use crate::ops::population::{BuildRequest as PopBuild, IsochroneInput, SamplingOptions, build_population, put_population_ref};
 use crate::ops::spatial::load_grid;
 use crate::store::Member;
 use crate::types::{ArtifactInput, CatalogInput, Extinction, Geometry, ImfSpec, MagLimitSpec, Page, Quantity, Selection};
@@ -289,7 +289,7 @@ fn uniform_population(ctx: &Ctx, u: &UniformSurfaceBrightness, g: &Geometry) -> 
         label: Some("uniform".into()),
     };
     let (p, iso_id, iso_ref) = build_population(ctx, &preq, "uniform-surface-brightness")?;
-    let r = put_population(ctx, &p, vec![iso_id])?;
+    let r = put_population_ref(ctx, &p, vec![iso_id])?;
     ctx.warn("UNIFORM_SB_COUNT", format!("Uniform surface brightness implies {per_pix:.6} stars/pixel ({n} stars, mean absolute {} = {mean_mag:.4} with the selected IMF).", u.band));
     Ok((p, r, iso_ref))
 }
@@ -390,14 +390,33 @@ fn population_source(ctx: &Ctx, p: &Population, pop_id: &str, model: &SpatialMod
     let keys = [pop_id];
     let draws = if n > 0 { Some(spatial::Draws { seed: ctx.seed()?, stage: "source.position", keys: &keys }) } else { None };
     let (positions, profile, shape, model_meta) = sample_spatial(ctx, model, n, g, (req.offset_pixels[0], req.offset_pixels[1]), req.outside, if single { Some(d0) } else { None }, draws)?;
-    if positions.outside_count() > 0 {
-        ctx.warn("STARS_OUTSIDE_FRAME", format!("{} of {} stars fall outside the frame (policy {:?}).", positions.outside_count(), positions.generated, req.outside));
+    let (generated, outside) = (positions.generated, positions.outside_count());
+    if outside > 0 {
+        ctx.warn("STARS_OUTSIDE_FRAME", format!("{} of {} stars fall outside the frame (policy {:?}).", outside, generated, req.outside));
     }
-    let idx: Vec<usize> = positions.index.iter().map(|i| *i as usize).collect();
-    let mags: Vec<Vec<f64>> = (0..p.filters.len()).map(|b| {
-        let all = p.apparent_mags(b);
-        idx.iter().map(|i| all[*i]).collect()
-    }).collect();
+    // Retained stars in population order (identity when nothing was dropped).
+    let idx: Vec<usize> = match &positions.index {
+        Some(v) => v.iter().map(|i| *i as usize).collect(),
+        None => (0..positions.len()).collect(),
+    };
+    // Apparent magnitude of each placed star, bands in parallel.
+    let mags: Vec<Vec<f64>> = {
+        use rayon::prelude::*;
+        (0..p.filters.len())
+            .into_par_iter()
+            .map(|b| {
+                let offsets: Vec<f64> = (0..p.components.len()).map(|c| p.apparent_offset(c as u32, b)).collect();
+                let (col, comp) = (&p.catalog.abs_mags[b], &p.catalog.component);
+                let mut out = artpop_core::mem::zeroed_f64(idx.len());
+                out.par_chunks_mut(artpop_core::mem::PAR_CHUNK).zip(idx.par_chunks(artpop_core::mem::PAR_CHUNK)).for_each(|(o, ix)| {
+                    for (v, i) in o.iter_mut().zip(ix) {
+                        *v = col[*i] + offsets[comp[*i] as usize];
+                    }
+                });
+                out
+            })
+            .collect()
+    };
     let labels = match req.label_type.as_deref() {
         None => None,
         Some("phases") => {
@@ -425,20 +444,24 @@ fn population_source(ctx: &Ctx, p: &Population, pop_id: &str, model: &SpatialMod
             }
         }
     }
+    let component = idx.iter().map(|i| p.catalog.component[*i]).collect();
+    let Positions { x, y, inside, index, .. } = positions;
+    // An empty star_index means identity (it is implied, never stored).
+    let star_index = index.unwrap_or_default();
     Ok(SourceData {
         geometry: g.clone(),
         bands: p.filters.clone(),
         magnitude_system: p.magnitude_system.clone(),
-        x: positions.x.clone(),
-        y: positions.y.clone(),
-        inside: positions.inside.clone(),
+        x,
+        y,
+        inside,
         mags,
-        component: idx.iter().map(|i| p.catalog.component[*i]).collect(),
-        star_index: positions.index.clone(),
+        component,
+        star_index,
         labels,
         smooth,
         components: p.components.iter().map(|c| json!({ "id": c.id, "label": c.label, "distance_pc": c.distance_pc })).collect(),
-        provenance: json!({ "kind": "population", "population_artifact_id": pop_id, "spatial_model": model_meta, "offset_pixels": req.offset_pixels, "outside_policy": req.outside, "generated": positions.generated, "outside": positions.outside_count() }),
+        provenance: json!({ "kind": "population", "population_artifact_id": pop_id, "spatial_model": model_meta, "offset_pixels": req.offset_pixels, "outside_policy": req.outside, "generated": generated, "outside": outside }),
     })
 }
 

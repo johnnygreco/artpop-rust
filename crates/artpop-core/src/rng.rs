@@ -132,7 +132,7 @@ impl Stream {
             let u = self.uniform() - 0.5;
             let v = self.uniform();
             let us = 0.5 - u.abs();
-            let kf = ((2.0 * a / us + b) * u + lambda + 0.43).floor();
+            let kf = floor_exact((2.0 * a / us + b) * u + lambda + 0.43);
             if us >= 0.07 && v <= vr {
                 return kf as u64;
             }
@@ -144,6 +144,14 @@ impl Stream {
             }
         }
     }
+}
+
+/// `f64::floor` for |x| < 2^63 without a library call (identical results,
+/// including -inf, which PTRS rejects as `kf < 0`).
+#[inline]
+fn floor_exact(x: f64) -> f64 {
+    let t = (x as i64) as f64;
+    if t > x { t - 1.0 } else { t }
 }
 
 /// Maximum Poisson mean accepted by the sampler.
@@ -167,9 +175,70 @@ pub fn par_blocks<T: Send>(seed: Seed, stage: &str, keys: &[&str], out: &mut [T]
     });
 }
 
+/// Two equally long outputs filled together; block `k` of both uses the
+/// stream `(stage, keys..., "block<k>")`, so a `(x, y)` pair drawn in `f`
+/// consumes the stream exactly as a single tuple array would.
+pub fn par_blocks2<A: Send, B: Send>(seed: Seed, stage: &str, keys: &[&str], a: &mut [A], b: &mut [B], f: impl Fn(&mut Stream, &mut [A], &mut [B]) + Sync) {
+    use rayon::prelude::*;
+    assert_eq!(a.len(), b.len(), "paired block fills need equal lengths");
+    a.par_chunks_mut(BLOCK).zip(b.par_chunks_mut(BLOCK)).enumerate().for_each(|(k, (ca, cb))| {
+        let block = format!("block{k}");
+        let mut all: Vec<&str> = keys.to_vec();
+        all.push(&block);
+        let mut st = seed.stream(stage, &all);
+        f(&mut st, ca, cb);
+    });
+}
+
+/// Fill `out` in parallel blocks while reading the matching block of `src`.
+pub fn par_blocks_zip<T: Send, S: Sync>(seed: Seed, stage: &str, keys: &[&str], out: &mut [T], src: &[S], f: impl Fn(&mut Stream, &mut [T], &[S]) + Sync) {
+    use rayon::prelude::*;
+    assert_eq!(out.len(), src.len(), "zipped block fills need equal lengths");
+    out.par_chunks_mut(BLOCK).zip(src.par_chunks(BLOCK)).enumerate().for_each(|(k, (chunk, s))| {
+        let block = format!("block{k}");
+        let mut all: Vec<&str> = keys.to_vec();
+        all.push(&block);
+        let mut st = seed.stream(stage, &all);
+        f(&mut st, chunk, s);
+    });
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn paired_and_zipped_block_fills_match_single_arrays() {
+        let n = 3 * BLOCK + 17;
+        let mut pairs = vec![(0.0, 0.0); n];
+        par_blocks(Seed(9), "pair", &["k"], &mut pairs, |st, chunk| {
+            for p in chunk.iter_mut() {
+                *p = (st.uniform(), st.normal());
+            }
+        });
+        let (mut xs, mut ys) = (vec![0.0; n], vec![0.0; n]);
+        par_blocks2(Seed(9), "pair", &["k"], &mut xs, &mut ys, |st, cx, cy| {
+            for (x, y) in cx.iter_mut().zip(cy.iter_mut()) {
+                *x = st.uniform();
+                *y = st.normal();
+            }
+        });
+        assert!(pairs.iter().zip(xs.iter().zip(&ys)).all(|(p, (x, y))| p.0 == *x && p.1 == *y));
+        let src: Vec<f64> = (0..n).map(|i| i as f64).collect();
+        let mut a = src.clone();
+        par_blocks(Seed(3), "zip", &[], &mut a, |st, chunk| {
+            for v in chunk.iter_mut() {
+                *v += st.uniform();
+            }
+        });
+        let mut b = vec![0.0; n];
+        par_blocks_zip(Seed(3), "zip", &[], &mut b, &src, |st, chunk, s| {
+            for (v, x) in chunk.iter_mut().zip(s) {
+                *v = x + st.uniform();
+            }
+        });
+        assert_eq!(a, b);
+    }
 
     #[test]
     fn seed_parsing_is_strict() {
@@ -189,6 +258,15 @@ mod tests {
         assert_eq!(a, (0..4).map(|_| again.next_u64()).collect::<Vec<_>>());
         let mut other = s.stream("mass", &["c1"]);
         assert_ne!(a[0], other.next_u64());
+    }
+
+    #[test]
+    fn exact_floor_matches_std() {
+        for x in [-2.5, -2.0, -1.0, -0.3, 0.0, 0.7, 1.0, 1.9999, 12345.5, 9.0e18, f64::NEG_INFINITY] {
+            let want = x.floor();
+            let got = floor_exact(x);
+            assert!(got == want || (x == f64::NEG_INFINITY && got < 0.0), "{x}: {got} vs {want}");
+        }
     }
 
     #[test]

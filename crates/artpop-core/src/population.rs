@@ -418,32 +418,23 @@ impl Population {
     }
 
     pub fn apparent_mags(&self, band: usize) -> Vec<f64> {
+        use rayon::prelude::*;
         let offsets: Vec<f64> = (0..self.components.len()).map(|c| self.apparent_offset(c as u32, band)).collect();
-        self.catalog.abs_mags[band].iter().zip(&self.catalog.component).map(|(m, c)| m + offsets[*c as usize]).collect()
+        let (mags, comp) = (&self.catalog.abs_mags[band], &self.catalog.component);
+        let mut out = crate::mem::zeroed_f64(mags.len());
+        out.par_chunks_mut(crate::mem::PAR_CHUNK).zip(mags.par_chunks(crate::mem::PAR_CHUNK)).zip(comp.par_chunks(crate::mem::PAR_CHUNK)).for_each(|((o, m), c)| {
+            for ((a, m), c) in o.iter_mut().zip(m).zip(c) {
+                *a = m + offsets[*c as usize];
+            }
+        });
+        out
     }
 
     /// Apparent flux sums; `selection` restricts discrete stars, and
     /// `unresolved_components` lists the components whose integrated light is added.
     pub fn band_sums(&self, band: usize, selection: Option<&[bool]>, unresolved_components: &[u32]) -> BandSums {
-        let mags = self.apparent_mags(band);
-        let (mut f, mut q, mut n) = (0.0, 0.0, 0.0);
-        for (i, m) in mags.iter().enumerate() {
-            if selection.is_none_or(|s| s[i]) {
-                let fl = 10f64.powf(-0.4 * m);
-                f += fl;
-                q += fl * fl;
-                n += 1.0;
-            }
-        }
-        let (mut uf, mut uq, mut un) = (0.0, 0.0, 0.0);
-        for &cid in unresolved_components {
-            let c = &self.components[cid as usize];
-            let scale = 10f64.powf(-0.4 * self.apparent_offset(cid, band));
-            uf += c.unresolved.flux1_abs[band] * scale;
-            uq += c.unresolved.flux2_abs[band] * scale * scale;
-            un += c.unresolved.expected_count;
-        }
-        BandSums { discrete_flux: f, discrete_flux2: q, discrete_count: n, unresolved_flux: uf, unresolved_flux2: uq, unresolved_count: un }
+        let component = if self.components.len() > 1 { Some(self.catalog.component.as_slice()) } else { None };
+        band_sums_from_columns(&self.components, band, &self.catalog.abs_mags[band], component, selection, unresolved_components)
     }
 
     /// Apparent integrated magnitude of one component's unresolved light.
@@ -490,6 +481,53 @@ impl Population {
         }
         Ok(out)
     }
+}
+
+/// [`Population::band_sums`] on raw columns: `abs_mags` holds absolute
+/// magnitudes, `component` the component of each star (None = all component
+/// 0). Fluxes `10^(-0.4 (M + DM + A))` are evaluated in parallel chunks and
+/// accumulated sequentially in star order, so the sums are bitwise identical
+/// to a plain loop.
+pub fn band_sums_from_columns(components: &[Component], band: usize, abs_mags: &[f64], component: Option<&[u32]>, selection: Option<&[bool]>, unresolved_components: &[u32]) -> BandSums {
+    use rayon::prelude::*;
+    let offsets: Vec<f64> = components.iter().map(|c| c.distance_modulus() + c.extinction[band]).collect();
+    // Fluxes of one super-block are evaluated in parallel into a reused
+    // buffer, then accumulated sequentially, so memory stays bounded and the
+    // addition order is the star order.
+    const CHUNK: usize = 1 << 15;
+    const SUPER: usize = 64 * CHUNK;
+    let mut buf = vec![0.0f64; SUPER.min(abs_mags.len())];
+    let (mut f, mut q, mut n) = (0.0, 0.0, 0.0);
+    for start in (0..abs_mags.len()).step_by(SUPER) {
+        let end = (start + SUPER).min(abs_mags.len());
+        let block = &mut buf[..end - start];
+        block.par_chunks_mut(CHUNK).zip(abs_mags[start..end].par_chunks(CHUNK)).enumerate().for_each(|(k, (o, m))| {
+            let base = start + k * CHUNK;
+            for (j, (v, mag)) in o.iter_mut().zip(m).enumerate() {
+                let off = match component {
+                    Some(c) => offsets[c[base + j] as usize],
+                    None => offsets[0],
+                };
+                *v = 10f64.powf(-0.4 * (mag + off));
+            }
+        });
+        for (j, fl) in block.iter().enumerate() {
+            if selection.is_none_or(|s| s[start + j]) {
+                f += fl;
+                q += fl * fl;
+                n += 1.0;
+            }
+        }
+    }
+    let (mut uf, mut uq, mut un) = (0.0, 0.0, 0.0);
+    for &cid in unresolved_components {
+        let c = &components[cid as usize];
+        let scale = 10f64.powf(-0.4 * offsets[cid as usize]);
+        uf += c.unresolved.flux1_abs[band] * scale;
+        uq += c.unresolved.flux2_abs[band] * scale * scale;
+        un += c.unresolved.expected_count;
+    }
+    BandSums { discrete_flux: f, discrete_flux2: q, discrete_count: n, unresolved_flux: uf, unresolved_flux2: uq, unresolved_count: un }
 }
 
 /// Concatenate populations as components, preserving each component's
@@ -655,6 +693,25 @@ mod tests {
             assert!((sum / parts - 1.0).abs() < 1e-12);
             assert!((c.total_mass() - full.total_mass() - part.total_mass()).abs() < 1e-9 * c.total_mass());
         }
+    }
+
+    #[test]
+    fn chunked_band_sums_match_a_plain_loop() {
+        let iso = fixture();
+        let s = spec(&iso, Normalization::Count { value: 150_000 });
+        let p = build(&s, Seed(12), "0").unwrap();
+        let b = p.filter_index("LSST_g").unwrap();
+        let sums = p.band_sums(b, None, &[0]);
+        let (mut f, mut q) = (0.0, 0.0);
+        let off = p.apparent_offset(0, b);
+        for m in &p.catalog.abs_mags[b] {
+            let fl = 10f64.powf(-0.4 * (m + off));
+            f += fl;
+            q += fl * fl;
+        }
+        assert_eq!(sums.discrete_flux.to_bits(), f.to_bits());
+        assert_eq!(sums.discrete_flux2.to_bits(), q.to_bits());
+        assert_eq!(sums.discrete_count, 150_000.0);
     }
 
     #[test]

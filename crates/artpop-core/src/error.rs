@@ -178,6 +178,17 @@ pub fn require_finite(values: &[f64], path: &str, what: &str) -> Result<()> {
     Ok(())
 }
 
+/// [`require_finite`] for large arrays: the scan runs in parallel and reports
+/// the first non-finite index, exactly like the sequential check.
+pub fn require_finite_par(values: &[f64], path: &str, what: &str) -> Result<()> {
+    use rayon::prelude::*;
+    if let Some(i) = values.par_iter().with_min_len(1 << 15).position_first(|v| !v.is_finite()) {
+        return Err(Error::nonfinite(path, format!("{what} contains a non-finite value at index {i}."))
+            .with_details(serde_json::json!({ "index": i })));
+    }
+    Ok(())
+}
+
 pub fn require_positive(value: f64, path: &str, what: &str) -> Result<()> {
     if !value.is_finite() || value <= 0.0 {
         return Err(Error::invalid(path, format!("{what} must be a finite number greater than zero."))

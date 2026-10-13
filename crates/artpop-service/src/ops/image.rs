@@ -1,7 +1,7 @@
 //! Image construction and manipulation: histograms, smooth light,
 //! convolution, embedding, arithmetic, previews, and plots.
 
-use crate::codec::{SmoothProfile, SourceData, image_member, load_isochrone, load_population, load_source, read_image};
+use crate::codec::{SmoothProfile, SourceData, SourceLoad, image_member, image_member_owned, load_isochrone, load_population, load_source, load_source_with, read_image};
 use crate::ops::population::{MagFrame, population_mask, population_numeric};
 use crate::ops::source::{smooth_amplitude, source_mask};
 use crate::store::Member;
@@ -127,20 +127,27 @@ pub fn histogram(ctx: &Ctx, req: HistogramRequest) -> Result<OpOutput> {
         }
         (weights, mask, geometry, unit, inputs) = (w, None, g, u, vec![]);
     } else if let Some(src) = &req.source {
-        let s = load_source(ctx, &src.artifact_id, "/source/artifact_id")?;
+        let mut load = SourceLoad::for_render("", &req.selection);
+        load.bands = Some(match &req.weights {
+            WeightSpec::MagnitudeFlux { band, .. } => vec![band.clone()],
+            _ => vec![],
+        });
+        let s = load_source_with(ctx, &src.artifact_id, "/source/artifact_id", &load)?;
         let sel = source_mask(ctx, &s, &req.selection, "/selection")?;
         let m: Vec<bool> = (0..s.len()).map(|i| s.inside[i] && sel.as_ref().is_none_or(|v| v[i])).collect();
         let (w, u) = match &req.weights {
             WeightSpec::Unit => (None, "count".to_string()),
             WeightSpec::MagnitudeFlux { band, zpt } => {
-                let b = s.band_index(band).map_err(|e| e.at("/weights/band"))?;
-                (Some(s.mags[b].iter().map(|m| 10f64.powf(0.4 * (zpt - m))).collect()), format!("flux (zpt={zpt})"))
+                let col = s.band_column(band, "/weights/band")?;
+                (Some(artpop_core::mem::par_map_f64(col, |m| 10f64.powf(0.4 * (zpt - m)))), format!("flux (zpt={zpt})"))
             }
             WeightSpec::Column { .. } => return Err(Error::invalid("/weights", "Column weights apply to catalogs; use magnitude_flux for sources.")),
         };
-        xs = s.x.clone();
-        ys = s.y.clone();
-        (weights, mask, geometry, unit, inputs) = (w, Some(m), req.geometry.clone().unwrap_or(s.geometry.clone()), u, vec![src.artifact_id.clone()]);
+        let g = req.geometry.clone().unwrap_or(s.geometry.clone());
+        let SourceData { x, y, .. } = s;
+        xs = x;
+        ys = y;
+        (weights, mask, geometry, unit, inputs) = (w, Some(m), g, u, vec![src.artifact_id.clone()]);
     } else {
         let p = req.positions.as_ref().unwrap();
         let (pos, g) = crate::codec::load_positions(ctx, &p.artifact_id, "/positions/artifact_id")?;
@@ -154,12 +161,14 @@ pub fn histogram(ctx: &Ctx, req: HistogramRequest) -> Result<OpOutput> {
     geometry.validate("/geometry", ctx.config().limits.max_image_pixels)?;
     let conv = req.convention.unwrap_or(geometry.coordinates);
     let (img, st) = deposit(conv, geometry.width, geometry.height, &xs, &ys, weights.as_deref(), mask.as_deref(), req.invalid)?;
+    drop((xs, ys, weights));
     let mut diagnostics = stats_json(&st);
     // Stars excluded before binning (outside-marked or unselected source stars).
     diagnostics["excluded_by_mask"] = json!(mask.as_ref().map_or(0, |m| m.iter().filter(|v| !**v).count()));
-    let meta = json!({ "width": geometry.width, "height": geometry.height, "unit": unit, "convention": conv, "geometry": geometry, "diagnostics": diagnostics, "sum": img.sum() });
-    let r = ctx.put("image", meta, vec![image_member("image", &img, &unit)], inputs)?;
-    Ok(OpOutput::new(json!({ "image_artifact_id": r.artifact_id, "width": geometry.width, "height": geometry.height, "unit": unit, "convention": conv, "diagnostics": diagnostics, "sum": img.sum() })).with(r))
+    let sum = img.sum();
+    let meta = json!({ "width": geometry.width, "height": geometry.height, "unit": unit, "convention": conv, "geometry": geometry, "diagnostics": diagnostics, "sum": sum });
+    let r = ctx.put("image", meta, vec![image_member_owned("image", img, &unit)], inputs)?;
+    Ok(OpOutput::new(json!({ "image_artifact_id": r.artifact_id, "width": geometry.width, "height": geometry.height, "unit": unit, "convention": conv, "diagnostics": diagnostics, "sum": sum })).with(r))
 }
 
 pub enum SmoothUnits<'a> {
@@ -190,13 +199,21 @@ pub fn render_smooth(s: &SourceData, band: &str, components: Option<&[u32]>, uni
         };
         let model = c.shape.scaled(amp);
         let prepared = model.prepare()?;
+        // Evaluate rows in parallel, then add in row-major order so the image
+        // and the captured total are bitwise those of a sequential loop.
+        let mut vals = artpop_core::mem::zeroed_f64(image.width * image.height);
+        {
+            use rayon::prelude::*;
+            vals.par_chunks_mut(image.width).enumerate().for_each(|(y, row)| {
+                for (x, v) in row.iter_mut().enumerate() {
+                    *v = prepared.eval(x as f64, y as f64);
+                }
+            });
+        }
         let mut captured = 0.0;
-        for y in 0..image.height {
-            for x in 0..image.width {
-                let v = prepared.eval(x as f64, y as f64);
-                image.data[y * image.width + x] += v;
-                captured += v;
-            }
+        for (d, v) in image.data.iter_mut().zip(&vals) {
+            *d += v;
+            captured += v;
         }
         let profile_name = match c.profile {
             SmoothProfile::Sersic { .. } => "sersic",

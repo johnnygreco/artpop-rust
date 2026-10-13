@@ -83,6 +83,13 @@ fn slow_psf() -> Value {
     json!({ "schema_version": "1", "kind": "moffat", "fwhm": { "value": 40, "unit": "pixel" }, "width": 401, "height": 401, "mode": "integrate", "integration_rel_tol": 1e-13 })
 }
 
+fn long_psf() -> Value {
+    // Brute-force oversampling (401 x 401 pixels x 400^2 sub-samples, about
+    // 2.6e10 evaluations): minutes of CPU in any build profile, so the job is
+    // still running when the test kills its worker. It never completes here.
+    json!({ "schema_version": "1", "kind": "moffat", "fwhm": { "value": 40, "unit": "pixel" }, "width": 401, "height": 401, "mode": "oversample", "factor": 400 })
+}
+
 #[test]
 fn jobs_complete_dedupe_conflict_and_cancel() {
     let d = Dir::new("jobs");
@@ -118,7 +125,7 @@ fn jobs_complete_dedupe_conflict_and_cancel() {
 #[test]
 fn killed_worker_is_reported_interrupted() {
     let d = Dir::new("interrupt");
-    let (_, sub, _) = invoke(&d.0, "job.submit", json!({ "schema_version": "1", "operation": "psf.build", "request": slow_psf() }));
+    let (_, sub, _) = invoke(&d.0, "job.submit", json!({ "schema_version": "1", "operation": "psf.build", "request": long_psf() }));
     let job = sub["result"]["job_id"].as_str().unwrap().to_string();
     let st = wait_for(&d.0, &job, &["running"], Duration::from_secs(30));
     let pid = st["result"]["job"]["worker_pid"].as_u64().unwrap();

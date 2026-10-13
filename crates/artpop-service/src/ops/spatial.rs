@@ -123,7 +123,8 @@ pub fn grid_build(ctx: &Ctx, req: GridBuildRequest) -> Result<OpOutput> {
         "model": req.model,
     });
     let inputs = req.weights_image.iter().map(|a| a.artifact_id.clone()).collect();
-    let r = ctx.put("spatial_grid", meta, vec![Member::f64("weights", &img.data, vec![img.height, img.width], None)], inputs)?;
+    let shape = vec![img.height, img.width];
+    let r = ctx.put("spatial_grid", meta, vec![Member::f64_owned("weights", img.data, shape, None)], inputs)?;
     Ok(OpOutput::new(json!({ "spatial_grid_artifact_id": r.artifact_id, "width": grid.width, "height": grid.height, "total_weight": grid.total, "positive_cells": grid.positive_cells, "bytes": grid.weights.len() * 8 })).with(r))
 }
 

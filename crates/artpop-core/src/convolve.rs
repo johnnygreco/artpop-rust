@@ -51,7 +51,7 @@ pub fn resolve_method(method: Method, image: (usize, usize), kernel: (usize, usi
 }
 
 pub fn convolve(image: &Image, kernel: &Image, boundary: Boundary, method: Method, normalize_kernel: bool) -> Result<(Image, ConvolveInfo)> {
-    crate::error::require_finite(&image.data, "/image", "image")?;
+    crate::error::require_finite_par(&image.data, "/image", "image")?;
     crate::error::require_finite(&kernel.data, "/psf", "kernel")?;
     let ksum = crate::image::pairwise_sum(&kernel.data);
     let kdata: Vec<f64> = if normalize_kernel {
@@ -165,7 +165,8 @@ pub const MAX_TILED_KERNEL: usize = 192;
 /// of the block with the kernel placed at the origin equals the requested
 /// convolution on the non-wrapped part. The kernel spectrum is computed once;
 /// two real tiles share one complex transform (real and imaginary parts).
-/// Each output pixel's arithmetic is independent of scheduling.
+/// Each output pixel's arithmetic is independent of scheduling; work buffers
+/// are reused per worker thread and tiles write straight into the output.
 fn fft_tiled(image: &Image, k: &Image, boundary: Boundary) -> Image {
     use rayon::prelude::*;
     let kmax = k.width.max(k.height);
@@ -177,6 +178,7 @@ fn fft_tiled(image: &Image, k: &Image, boundary: Boundary) -> Image {
     let mut planner = FftPlanner::new();
     let fwd = planner.plan_fft_forward(n);
     let inv = planner.plan_fft_inverse(n);
+    let scratch_len = fwd.get_inplace_scratch_len().max(inv.get_inplace_scratch_len());
     // Kernel spectrum with the kernel at the origin.
     let mut kspec = vec![Complex::new(0.0, 0.0); n * n];
     for j in 0..k.height {
@@ -184,81 +186,135 @@ fn fft_tiled(image: &Image, k: &Image, boundary: Boundary) -> Image {
             kspec[j * n + i] = Complex::new(k.get(i, j), 0.0);
         }
     }
-    let block_fft = |buf: &mut [Complex<f64>], f: &std::sync::Arc<dyn rustfft::Fft<f64>>| {
-        let mut scratch = vec![Complex::new(0.0, 0.0); f.get_inplace_scratch_len()];
-        for r in buf.chunks_exact_mut(n) {
-            f.process_with_scratch(r, &mut scratch);
-        }
+    {
         let mut t = vec![Complex::new(0.0, 0.0); n * n];
-        for y in 0..n {
-            for x in 0..n {
-                t[x * n + y] = buf[y * n + x];
-            }
-        }
-        for c in t.chunks_exact_mut(n) {
-            f.process_with_scratch(c, &mut scratch);
-        }
-        // Leave the spectrum transposed: multiplication is elementwise and the
-        // inverse transposes back, so both orientations stay consistent.
-        buf.copy_from_slice(&t);
-    };
-    block_fft(&mut kspec, &fwd);
+        let mut scratch = vec![Complex::new(0.0, 0.0); scratch_len];
+        block_fft(&mut kspec, &mut t, &mut scratch, &fwd, n);
+    }
     let tiles_y = (image.height).div_ceil(ty);
     let tiles_x = (image.width).div_ceil(tx);
     let tiles: Vec<(usize, usize)> = (0..tiles_y).flat_map(|a| (0..tiles_x).map(move |b| (a, b))).collect();
     let scale = 1.0 / (n * n) as f64;
-    let gather = |oy: i64, ox: i64, j: usize, i: usize| -> f64 {
-        let (yy, xx) = (oy - sy + j as i64, ox - sx + i as i64);
+    // Copy block row `j` of the tile at (oy, ox) into the real or imaginary
+    // parts of `dst` (length n). `dst` holds zeros on entry.
+    let gather_row = |oy: i64, ox: i64, j: usize, dst: &mut [Complex<f64>], imag: bool| {
+        let yy = oy - sy + j as i64;
+        let x0 = ox - sx;
+        let put = |dst: &mut [Complex<f64>], src: &[f64]| {
+            if imag {
+                for (d, s) in dst.iter_mut().zip(src) {
+                    d.im = *s;
+                }
+            } else {
+                for (d, s) in dst.iter_mut().zip(src) {
+                    d.re = *s;
+                }
+            }
+        };
         match boundary {
-            Boundary::Wrap => image.data[(yy.rem_euclid(h) * w + xx.rem_euclid(w)) as usize],
+            Boundary::Wrap => {
+                let row = &image.data[(yy.rem_euclid(h) * w) as usize..][..w as usize];
+                let (mut i, mut xx) = (0usize, x0.rem_euclid(w) as usize);
+                while i < n {
+                    let run = (n - i).min(w as usize - xx);
+                    put(&mut dst[i..i + run], &row[xx..xx + run]);
+                    i += run;
+                    xx = 0;
+                }
+            }
             Boundary::Fill => {
-                if yy < 0 || yy >= h || xx < 0 || xx >= w { 0.0 } else { image.data[(yy * w + xx) as usize] }
+                if yy < 0 || yy >= h {
+                    return;
+                }
+                let row = &image.data[(yy * w) as usize..][..w as usize];
+                let (lo, hi) = (x0.max(0), (x0 + n as i64).min(w));
+                if hi > lo {
+                    put(&mut dst[(lo - x0) as usize..(hi - x0) as usize], &row[lo as usize..hi as usize]);
+                }
             }
         }
     };
-    let results: Vec<Vec<(usize, usize, Vec<f64>)>> = tiles
+    let mut out = Image::zeros(image.width, image.height);
+    let out_ptr = OutPtr(out.data.as_mut_ptr());
+    let kspec = &kspec;
+    tiles
         .par_chunks(2)
-        .map(|pair| {
-            let mut buf = vec![Complex::new(0.0, 0.0); n * n];
-            for j in 0..n {
-                for i in 0..n {
-                    let (a, b) = pair[0];
-                    let re = gather((a * ty) as i64, (b * tx) as i64, j, i);
-                    let im = pair.get(1).map_or(0.0, |&(a2, b2)| gather((a2 * ty) as i64, (b2 * tx) as i64, j, i));
-                    buf[j * n + i] = Complex::new(re, im);
+        .for_each_init(
+            || (vec![Complex::new(0.0, 0.0); n * n], vec![Complex::new(0.0, 0.0); n * n], vec![Complex::new(0.0, 0.0); scratch_len]),
+            |(buf, t, scratch), pair| {
+                buf.fill(Complex::new(0.0, 0.0));
+                for (which, &(a, b)) in pair.iter().enumerate() {
+                    let (oy, ox) = ((a * ty) as i64, (b * tx) as i64);
+                    for j in 0..n {
+                        gather_row(oy, ox, j, &mut buf[j * n..(j + 1) * n], which == 1);
+                    }
                 }
-            }
-            block_fft(&mut buf, &fwd);
-            for (v, kv) in buf.iter_mut().zip(&kspec) {
-                *v *= kv;
-            }
-            // Inverse of the transposed spectrum returns to row-major order.
-            block_fft(&mut buf, &inv);
-            pair.iter()
-                .enumerate()
-                .map(|(which, &(a, b))| {
+                block_fft(buf, t, scratch, &fwd, n);
+                for (v, kv) in buf.iter_mut().zip(kspec.iter()) {
+                    *v *= kv;
+                }
+                // Inverse of the transposed spectrum returns to row-major order.
+                block_fft(buf, t, scratch, &inv, n);
+                for (which, &(a, b)) in pair.iter().enumerate() {
                     let (oy, ox) = (a * ty, b * tx);
                     let (th, tw) = (ty.min(image.height - oy), tx.min(image.width - ox));
-                    let mut out = Vec::with_capacity(th * tw);
-                    for t in 0..th {
-                        for u in 0..tw {
-                            let c = buf[(t + k.height - 1) * n + (u + k.width - 1)];
-                            out.push(if which == 0 { c.re } else { c.im } * scale);
+                    for r in 0..th {
+                        let src = &buf[(r + k.height - 1) * n + (k.width - 1)..][..tw];
+                        let base = (oy + r) * image.width + ox;
+                        for (u, c) in src.iter().enumerate() {
+                            // SAFETY: tiles cover disjoint output rectangles, so no
+                            // two tasks write the same pixel.
+                            unsafe { out_ptr.write(base + u, if which == 0 { c.re } else { c.im } * scale) };
                         }
                     }
-                    (oy, ox, out)
-                })
-                .collect()
-        })
-        .collect();
-    let mut out = Image::zeros(image.width, image.height);
-    for (oy, ox, tile) in results.into_iter().flatten() {
-        let tw = tx.min(image.width - ox);
-        for (t, row) in tile.chunks_exact(tw).enumerate() {
-            out.data[(oy + t) * image.width + ox..(oy + t) * image.width + ox + tw].copy_from_slice(row);
+                }
+            },
+        );
+    out
+}
+
+/// Raw output pointer shared by tile tasks that write disjoint rectangles.
+struct OutPtr(*mut f64);
+
+unsafe impl Sync for OutPtr {}
+unsafe impl Send for OutPtr {}
+
+impl OutPtr {
+    /// # Safety
+    /// `i` must be in bounds and written by exactly one task.
+    #[inline]
+    unsafe fn write(&self, i: usize, v: f64) {
+        unsafe { self.0.add(i).write(v) }
+    }
+}
+
+/// In-place 2D FFT of an `n x n` block: rows, then (transposed) columns. The
+/// spectrum is left transposed; applying the same routine with the inverse
+/// plan transposes back, so forward/multiply/inverse stays consistent.
+fn block_fft(buf: &mut [Complex<f64>], t: &mut [Complex<f64>], scratch: &mut [Complex<f64>], f: &std::sync::Arc<dyn rustfft::Fft<f64>>, n: usize) {
+    for r in buf.chunks_exact_mut(n) {
+        f.process_with_scratch(r, scratch);
+    }
+    transpose_square(buf, t, n);
+    for c in t.chunks_exact_mut(n) {
+        f.process_with_scratch(c, scratch);
+    }
+    buf.copy_from_slice(t);
+}
+
+/// `dst[x * n + y] = src[y * n + x]` in cache-friendly 16x16 blocks.
+fn transpose_square(src: &[Complex<f64>], dst: &mut [Complex<f64>], n: usize) {
+    const B: usize = 16;
+    for y0 in (0..n).step_by(B) {
+        for x0 in (0..n).step_by(B) {
+            for y in y0..(y0 + B).min(n) {
+                let row = &src[y * n..(y + 1) * n];
+                for x in x0..(x0 + B).min(n) {
+                    dst[x * n + y] = row[x];
+                }
+            }
         }
     }
-    out
 }
 
 /// Smallest 2/3/5-smooth integer >= n.

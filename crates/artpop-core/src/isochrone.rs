@@ -214,22 +214,27 @@ impl Isochrone {
                 (j as u32, m == x[j])
             })
             .collect();
+        let eval = |y: &[f64], (j, exact): (u32, bool), m: f64| -> f64 {
+            let j = j as usize;
+            if exact {
+                return y[j];
+            }
+            let slope = (y[j + 1] - y[j]) / (x[j + 1] - x[j]);
+            let r = slope * (m - x[j]) + y[j];
+            if r.is_nan() { np_interp(x, y, m) } else { r }
+        };
+        // Columns in parallel, and within a column parallel chunks; each value
+        // depends only on its own bracket, so the result is order-independent.
         Ok(columns
             .par_iter()
             .map(|y| {
-                brackets
-                    .iter()
-                    .zip(masses)
-                    .map(|(&(j, exact), &m)| {
-                        let j = j as usize;
-                        if exact {
-                            return y[j];
-                        }
-                        let slope = (y[j + 1] - y[j]) / (x[j + 1] - x[j]);
-                        let r = slope * (m - x[j]) + y[j];
-                        if r.is_nan() { np_interp(x, y, m) } else { r }
-                    })
-                    .collect()
+                let mut out = crate::mem::zeroed_f64(masses.len());
+                out.par_chunks_mut(crate::mem::PAR_CHUNK).zip(brackets.par_chunks(crate::mem::PAR_CHUNK)).zip(masses.par_chunks(crate::mem::PAR_CHUNK)).for_each(|((o, br), ms)| {
+                    for ((v, b), m) in o.iter_mut().zip(br).zip(ms) {
+                        *v = eval(y, *b, *m);
+                    }
+                });
+                out
             })
             .collect())
     }

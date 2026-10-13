@@ -18,6 +18,7 @@ LABELS = {
     "artificial_2k": "1M-star SSP → Plummer source → 2047² detector image (41² PSF) → 3 FITS planes",
     "uniform_hist_10m": "10M uniform positions → 2047² histogram → FITS",
     "mist_mass_cutoff": "MIST LSST 10 Gyr, 1e7 Msun, cutoff 29 mag → photometry",
+    "mist_full_1e7": "MIST LSST 10 Gyr, 1e7 Msun fully sampled (2.3e7 stars) → photometry",
 }
 
 

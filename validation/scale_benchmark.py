@@ -33,7 +33,7 @@ def main():
     a.work_dir.mkdir(parents=True)
     binary = a.rust_bin.resolve()
     data_dir = a.work_dir / "rust-data"
-    if "mist_mass_cutoff" in a.cases:
+    if "mist_mass_cutoff" in a.cases or "mist_full_1e7" in a.cases:
         mist = Path(os.environ["MIST_PATH"]) / MIST_SYSTEM_DIR
         r = subprocess.run([str(binary), "--data-dir", str(data_dir), "--artifact-dir", str(a.work_dir / "setup"), "data", "import", "--set", f"path={mist}"], capture_output=True, text=True)
         assert json.loads(r.stdout)["status"] == "completed", r.stdout

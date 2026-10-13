@@ -1,5 +1,9 @@
 """Larger equivalent workflows for Python-vs-Rust timing (scale_benchmark.py).
 
+`mist_full_1e7` is the compute-bound reference: a fully sampled 1e7 Msun MIST
+population (about 23 million stars), where ArtPop spends its time in NumPy and
+SciPy rather than in imports.
+
 Each case runs a complete user-level workflow through the public API (Python)
 or the public CLI (Rust), writing comparable products. Correctness at these
 sizes is checked loosely here (counts, flux conservation, photometric
@@ -13,7 +17,7 @@ import sys
 
 from harness import ROOT, RustCli, dump, reference_imports
 
-CASES = ("population_1m", "sersic_ideal_1m", "artificial_2k", "uniform_hist_10m", "mist_mass_cutoff")
+CASES = ("population_1m", "sersic_ideal_1m", "artificial_2k", "uniform_hist_10m", "mist_mass_cutoff", "mist_full_1e7")
 FIXTURE = ROOT / "artpop-rust" / "fixtures" / "lsst_feh_m1.00_10gyr_iso.csv"
 BANDS = ["LSST_g", "LSST_i"]
 MIST_SYSTEM_DIR = "MIST_v1.2_vvcrit0.4_LSST"
@@ -55,6 +59,11 @@ def run_python(case, out):
         dump(out / "summary.json", {"deposited": float(img.sum())})
     elif case == "mist_mass_cutoff":
         ssp = artpop.MISTSSP(10.0, -1.5, "LSST", total_mass=1e7, distance=5, mag_limit=29.0, mag_limit_band="LSST_i", mist_path=os.environ["MIST_PATH"], random_state=6)
+        dump(out / "summary.json", {"num_stars": int(ssp.num_stars), "total_mass_msun": float(ssp.total_mass.value), "total_mag": {b: float(ssp.total_mag(b)) for b in BANDS}, "sbf_mag": {b: float(ssp.sbf_mag(b)) for b in BANDS}})
+    elif case == "mist_full_1e7":
+        # Every star sampled: about 2.3e7 stars drawn in mass batches, then
+        # interpolated in all six LSST bands plus EEP, log L, and log Teff.
+        ssp = artpop.MISTSSP(10.0, -1.5, "LSST", total_mass=1e7, distance=5, mist_path=os.environ["MIST_PATH"], random_state=7)
         dump(out / "summary.json", {"num_stars": int(ssp.num_stars), "total_mass_msun": float(ssp.total_mass.value), "total_mag": {b: float(ssp.total_mag(b)) for b in BANDS}, "sbf_mag": {b: float(ssp.sbf_mag(b)) for b in BANDS}})
     else:
         raise ValueError(case)
@@ -105,6 +114,11 @@ def run_rust(case, out, binary, data_dir):
         p = cli.ref(r, "population")
         phot = cli.invoke("population.photometry", **p, bands=BANDS, metrics=["total_mag", "sbf_mag"])["result"]
         dump(out / "summary.json", {"num_stars": r["result"]["num_stars_discrete"], "total_mass_msun": r["result"]["total_mass_msun"], "total_mag": phot["total_mag"], "sbf_mag": phot["sbf_mag"]})
+    elif case == "mist_full_1e7":
+        r = cli.invoke("population.build", isochrone={"kind": "mist", "log_age_yr": 10.0, "feh": -1.5, "photometric_systems": ["LSST"]}, normalization={"kind": "current_mass", "value": 1e7}, distance={"value": 5, "unit": "Mpc"}, mass_tolerance=0.05, execution={"seed": "0000000000000009"})
+        p = cli.ref(r, "population")
+        phot = cli.invoke("population.photometry", **p, bands=BANDS, metrics=["total_mag", "sbf_mag"])["result"]
+        dump(out / "summary.json", {"num_stars": r["result"]["num_stars_discrete"], "total_mass_msun": r["result"]["total_mass_msun"], "total_mag": phot["total_mag"], "sbf_mag": phot["sbf_mag"]})
     else:
         raise ValueError(case)
 
@@ -117,6 +131,17 @@ def flux_moments(band):
     iso = artpop.Isochrone(a["initial_mass"], a["star_mass"], {band: a[band]})
     w = iso.imf_weights("kroupa", norm_type="number", m_max_norm=iso.m_max)
     f = 10 ** (-0.4 * a[band])
+    mu = np.sum(w * f) / np.sum(w)
+    return mu, np.sum(w * f * f) / np.sum(w) - mu * mu
+
+
+def mist_flux_moments(band, log_age=10.0, feh=-1.5):
+    """Mean and variance of one star's absolute flux under the Kroupa IMF for
+    the MIST isochrone the `mist_*` cases sample from."""
+    artpop, np, _ = reference_imports()
+    iso = artpop.MISTIsochrone(log_age, feh, "LSST", mist_path=os.environ["MIST_PATH"])
+    w = iso.imf_weights("kroupa", norm_type="number", m_max_norm=iso.m_max)
+    f = 10 ** (-0.4 * iso.mag_table[band])
     mu = np.sum(w * f) / np.sum(w)
     return mu, np.sum(w * f * f) / np.sum(w) - mu * mu
 
@@ -144,6 +169,25 @@ def check(case, output, reference):
             metrics[f"total_mag_diff_{band}"] = a["total_mag"][band] - b["total_mag"][band]
             assert abs(metrics[f"total_mag_diff_{band}"]) < 0.05, metrics
         assert abs(a["total_mass_msun"] / b["total_mass_msun"] - 1) < 0.06
+    elif case == "mist_full_1e7":
+        # Whole-batch mass normalization overshoots the target by up to one
+        # batch (5%) in either backend, so star counts and masses may differ
+        # by that much; the mean flux per star is compared against the
+        # realization scatter predicted from the isochrone's flux moments
+        # (giants dominate, so it is still ~1% at 2e7 stars).
+        metrics["num_stars_ratio"] = a["num_stars"] / b["num_stars"]
+        metrics["total_mass_ratio"] = a["total_mass_msun"] / b["total_mass_msun"]
+        assert abs(metrics["total_mass_ratio"] - 1) < 0.06, metrics
+        assert abs(metrics["num_stars_ratio"] - 1) < 0.06, metrics
+        for band in BANDS:
+            mu, var = mist_flux_moments(band)
+            rel = np.sqrt(var / min(a["num_stars"], b["num_stars"])) / mu
+            per_star = lambda s: 10 ** (-0.4 * s["total_mag"][band]) / s["num_stars"]
+            metrics[f"flux_per_star_ratio_{band}"] = per_star(a) / per_star(b)
+            metrics[f"realization_rel_sigma_{band}"] = float(rel)
+            assert abs(metrics[f"flux_per_star_ratio_{band}"] - 1) < 6 * np.sqrt(2) * rel, metrics
+            metrics[f"sbf_mag_diff_{band}"] = a["sbf_mag"][band] - b["sbf_mag"][band]
+            assert np.isfinite(a["sbf_mag"][band])
     elif case in ("sersic_ideal_1m", "artificial_2k"):
         key = "image_sum" if case == "sersic_ideal_1m" else "source_counts"
         mu, var = flux_moments("LSST_i")

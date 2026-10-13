@@ -349,7 +349,7 @@ impl Sampler {
 
     /// Draw `n` masses in parallel fixed-size blocks (deterministic).
     pub fn sample(&self, n: usize, seed: Seed, stage: &str, keys: &[&str]) -> Vec<f64> {
-        let mut out = vec![0.0; n];
+        let mut out = crate::mem::zeroed_f64(n);
         crate::rng::par_blocks(seed, stage, keys, &mut out, |st, chunk| {
             for v in chunk.iter_mut() {
                 *v = self.quantile(st.uniform());

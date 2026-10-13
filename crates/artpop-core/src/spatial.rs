@@ -7,7 +7,8 @@
 //! of the provenance. The outside-frame policy is applied after every offset.
 
 use crate::error::{Error, ErrorCode, Result};
-use crate::rng::{Seed, par_blocks};
+use crate::mem;
+use crate::rng::{Seed, par_blocks, par_blocks2};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -76,6 +77,8 @@ pub enum Model {
 pub struct PreparedModel<'a> {
     model: &'a Model,
     bn: f64,
+    /// `theta.sin_cos()` of a Sérsic model, evaluated once.
+    sincos: (f64, f64),
     children: Vec<PreparedModel<'a>>,
 }
 
@@ -137,11 +140,15 @@ impl Model {
             Model::Sersic { n, .. } => crate::special::sersic_bn(*n)?,
             _ => 0.0,
         };
+        let sincos = match self {
+            Model::Sersic { theta, .. } => theta.sin_cos(),
+            _ => (0.0, 0.0),
+        };
         let children = match self {
             Model::Sum { terms } => terms.iter().map(|t| t.prepare_inner()).collect::<Result<_>>()?,
             _ => Vec::new(),
         };
-        Ok(PreparedModel { model: self, bn, children })
+        Ok(PreparedModel { model: self, bn, sincos, children })
     }
 
     /// Return a copy with every amplitude multiplied by `factor`.
@@ -167,8 +174,8 @@ impl PreparedModel<'_> {
     #[inline]
     pub fn eval(&self, x: f64, y: f64) -> f64 {
         match *self.model {
-            Model::Sersic { x0, y0, amplitude, r_eff, n, ellip, theta } => {
-                let (s, c) = theta.sin_cos();
+            Model::Sersic { x0, y0, amplitude, r_eff, n, ellip, theta: _ } => {
+                let (s, c) = self.sincos;
                 let x_maj = ((x - x0) * c + (y - y0) * s).abs();
                 let x_min = (-(x - x0) * s + (y - y0) * c).abs();
                 let b = (1.0 - ellip) * r_eff;
@@ -242,7 +249,7 @@ impl WeightGrid {
     pub fn from_model(model: &Model, width: usize, height: usize, max_pixels: u64) -> Result<WeightGrid> {
         let p = checked_pixels(width, height, max_pixels)?;
         let prepared = model.prepare()?;
-        let mut weights = vec![0.0; p];
+        let mut weights = mem::zeroed_f64(p);
         weights.par_chunks_mut(width).enumerate().for_each(|(y, row)| {
             for (x, w) in row.iter_mut().enumerate() {
                 *w = prepared.eval(x as f64, y as f64);
@@ -344,8 +351,9 @@ pub struct Positions {
     pub x: Vec<f64>,
     pub y: Vec<f64>,
     pub inside: Vec<bool>,
-    /// Index of each retained position in the generated sequence.
-    pub index: Vec<u64>,
+    /// Index of each retained position in the generated sequence; `None`
+    /// means every generated position was retained (identity, not stored).
+    pub index: Option<Vec<u64>>,
     pub generated: u64,
 }
 
@@ -353,30 +361,57 @@ impl Positions {
     pub fn outside_count(&self) -> u64 {
         self.generated - self.inside.iter().filter(|v| **v).count() as u64
     }
+
+    pub fn len(&self) -> usize {
+        self.x.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.x.is_empty()
+    }
+
+    /// Generated-sequence index of retained position `i`.
+    #[inline]
+    pub fn index_at(&self, i: usize) -> u64 {
+        match &self.index {
+            Some(v) => v[i],
+            None => i as u64,
+        }
+    }
+
+    /// The explicit index column (materialized for identity).
+    pub fn index_column(&self) -> std::borrow::Cow<'_, [u64]> {
+        match &self.index {
+            Some(v) => std::borrow::Cow::Borrowed(v),
+            None => std::borrow::Cow::Owned((0..self.len() as u64).collect()),
+        }
+    }
 }
 
 /// Apply offsets were already added; now enforce the outside policy.
 pub fn apply_outside(xs: Vec<f64>, ys: Vec<f64>, coords: Coordinates, width: usize, height: usize, policy: OutsidePolicy) -> Result<Positions> {
     let n = xs.len();
-    let inside: Vec<bool> = xs.iter().zip(&ys).map(|(x, y)| coords.inside(*x, *y, width, height)).collect();
-    let outside = inside.iter().filter(|v| !**v).count();
+    let inside: Vec<bool> = xs.par_iter().zip(ys.par_iter()).with_min_len(mem::PAR_CHUNK).map(|(x, y)| coords.inside(*x, *y, width, height)).collect();
+    let outside = inside.par_iter().filter(|v| !**v).count();
     match policy {
         OutsidePolicy::Error if outside > 0 => Err(Error::new(ErrorCode::OutOfDomain, format!("{outside} of {n} sampled positions fall outside the {width}x{height} frame."))
             .at("/outside")
             .with_details(serde_json::json!({ "outside": outside, "generated": n, "alternatives": ["drop", "retain_marked"] }))),
         OutsidePolicy::Drop => {
             let mut p = Positions { generated: n as u64, ..Default::default() };
+            let mut index = Vec::new();
             for i in 0..n {
                 if inside[i] {
                     p.x.push(xs[i]);
                     p.y.push(ys[i]);
                     p.inside.push(true);
-                    p.index.push(i as u64);
+                    index.push(i as u64);
                 }
             }
+            p.index = if index.len() == n { None } else { Some(index) };
             Ok(p)
         }
-        _ => Ok(Positions { x: xs, y: ys, inside, index: (0..n as u64).collect(), generated: n as u64 }),
+        _ => Ok(Positions { x: xs, y: ys, inside, index: None, generated: n as u64 }),
     }
 }
 
@@ -403,14 +438,20 @@ pub fn sample_grid(grid: &WeightGrid, method: CategoricalMethod, count: usize, i
     let cat = Categorical::new(grid, method);
     let sx = grid_shift(coords, grid.width, image.0);
     let sy = grid_shift(coords, grid.height, image.1);
-    let mut cells = vec![0usize; count];
+    let mut cells: Vec<u32> = mem::zeroed_u32(count);
     par_blocks(draws.seed, draws.stage, draws.keys, &mut cells, |st, chunk| {
         for c in chunk.iter_mut() {
-            *c = cat.draw(st);
+            *c = cat.draw(st) as u32;
         }
     });
-    let xs: Vec<f64> = cells.par_iter().map(|k| (k % grid.width) as f64 - sx + offset.0).collect();
-    let ys: Vec<f64> = cells.par_iter().map(|k| (k / grid.width) as f64 - sy + offset.1).collect();
+    let (mut xs, mut ys) = (mem::zeroed_f64(count), mem::zeroed_f64(count));
+    xs.par_chunks_mut(mem::PAR_CHUNK).zip(ys.par_chunks_mut(mem::PAR_CHUNK)).zip(cells.par_chunks(mem::PAR_CHUNK)).for_each(|((cx, cy), cc)| {
+        for ((x, y), k) in cx.iter_mut().zip(cy.iter_mut()).zip(cc) {
+            let k = *k as usize;
+            *x = (k % grid.width) as f64 - sx + offset.0;
+            *y = (k / grid.width) as f64 - sy + offset.1;
+        }
+    });
     apply_outside(xs, ys, coords, image.0, image.1, policy)
 }
 
@@ -422,32 +463,32 @@ pub fn sample_plummer(count: usize, scale_radius_pix: f64, image: (usize, usize)
         Coordinates::PixelCentersV1 => coords.model_center(image.0, image.1),
         Coordinates::ArtPop012 => (image.0 as f64 / 2.0, image.1 as f64 / 2.0),
     };
-    let mut xy = vec![(0.0, 0.0); count];
-    par_blocks(draws.seed, draws.stage, draws.keys, &mut xy, |st, chunk| {
-        for p in chunk.iter_mut() {
+    let (mut xs, mut ys) = (mem::zeroed_f64(count), mem::zeroed_f64(count));
+    par_blocks2(draws.seed, draws.stage, draws.keys, &mut xs, &mut ys, |st, bx, by| {
+        for (x, y) in bx.iter_mut().zip(by.iter_mut()) {
             let s = st.uniform();
             let r = scale_radius_pix / (s.powf(-2.0 / 3.0) - 1.0).sqrt();
             let phi = st.uniform_range(0.0, 2.0 * std::f64::consts::PI);
             let theta = (2.0 * st.uniform() - 1.0).acos();
-            *p = (r * phi.cos() * theta.sin() + cx + offset.0, r * phi.sin() * theta.sin() + cy + offset.1);
+            *x = r * phi.cos() * theta.sin() + cx + offset.0;
+            *y = r * phi.sin() * theta.sin() + cy + offset.1;
         }
     });
-    let (xs, ys) = xy.into_iter().unzip();
     apply_outside(xs, ys, coords, image.0, image.1, policy)
 }
 
 pub fn sample_uniform(count: usize, image: (usize, usize), coords: Coordinates, draws: Draws) -> Positions {
     let (x0, x1) = coords.frame(image.0);
     let (y0, y1) = coords.frame(image.1);
-    let mut xy = vec![(0.0, 0.0); count];
-    par_blocks(draws.seed, draws.stage, draws.keys, &mut xy, |st, chunk| {
-        for p in chunk.iter_mut() {
-            *p = (st.uniform_range(x0, x1), st.uniform_range(y0, y1));
+    let (mut xs, mut ys) = (mem::zeroed_f64(count), mem::zeroed_f64(count));
+    par_blocks2(draws.seed, draws.stage, draws.keys, &mut xs, &mut ys, |st, cx, cy| {
+        for (x, y) in cx.iter_mut().zip(cy.iter_mut()) {
+            *x = st.uniform_range(x0, x1);
+            *y = st.uniform_range(y0, y1);
         }
     });
-    let (xs, ys): (Vec<f64>, Vec<f64>) = xy.into_iter().unzip();
     let n = xs.len();
-    Positions { x: xs, y: ys, inside: vec![true; n], index: (0..n as u64).collect(), generated: n as u64 }
+    Positions { x: xs, y: ys, inside: vec![true; n], index: None, generated: n as u64 }
 }
 
 /// Side of ArtPop's square Sérsic sampling grid: `2 ceil(r_pix * num_r_eff) + 1`.

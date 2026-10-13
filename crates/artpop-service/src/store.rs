@@ -119,6 +119,12 @@ impl Member {
         Member::f64(name, values, vec![values.len()], unit)
     }
 
+    /// A one-dimensional column that takes ownership of its values (no copy).
+    pub fn column_owned(name: &str, values: Vec<f64>, unit: Option<&str>) -> Member {
+        let n = values.len();
+        Member::f64_owned(name, values, vec![n], unit)
+    }
+
     pub fn u64(name: &str, values: &[u64]) -> Member {
         let mut bytes = Vec::with_capacity(values.len() * 8);
         for v in values {
@@ -245,22 +251,41 @@ impl Store {
                 return Err(Error::internal(format!("Member {} has {} bytes; shape implies {expected}.", m.name, m.bytes.len())));
             }
         }
-        // Members hash independently, so digests are computed in parallel.
-        let members: Vec<MemberInfo> = bundle
+        // Members are independent: each is hashed and written to the staging
+        // directory in one parallel pass, so file writes overlap with the
+        // hashing of other members. Member file names depend only on the
+        // position, so staging can start before the artifact ID is known; if
+        // the content turns out to exist already, staging is discarded.
+        let staging = self.root.join("staging").join(format!("{}", uuid::Uuid::new_v4().simple()));
+        std::fs::create_dir_all(&staging).map_err(|e| io_err(e, "Cannot create staging directory", &staging))?;
+        let members: Vec<MemberInfo> = match bundle
             .members
             .par_iter()
             .enumerate()
-            .map(|(i, m)| MemberInfo {
-                name: m.name.clone(),
-                dtype: m.dtype,
-                shape: m.shape.clone(),
-                unit: m.unit.clone(),
-                media_type: m.media_type.clone(),
-                bytes: m.bytes.len() as u64,
-                sha256: sha256_hex(m.bytes.as_bytes()),
-                file: format!("m{i:03}.bin"),
+            .map(|(i, m)| {
+                let file = format!("m{i:03}.bin");
+                let p = staging.join(&file);
+                let (written, digest) = rayon::join(|| std::fs::write(&p, m.bytes.as_bytes()).map_err(|e| io_err(e, "Cannot write", &p)), || sha256_hex(m.bytes.as_bytes()));
+                written?;
+                Ok(MemberInfo {
+                    name: m.name.clone(),
+                    dtype: m.dtype,
+                    shape: m.shape.clone(),
+                    unit: m.unit.clone(),
+                    media_type: m.media_type.clone(),
+                    bytes: m.bytes.len() as u64,
+                    sha256: digest,
+                    file,
+                })
             })
-            .collect();
+            .collect::<Result<Vec<MemberInfo>>>()
+        {
+            Ok(v) => v,
+            Err(e) => {
+                let _ = std::fs::remove_dir_all(&staging);
+                return Err(e);
+            }
+        };
         let identity = serde_json::json!({
             "schema_version": "1",
             "kind": bundle.kind,
@@ -287,15 +312,14 @@ impl Store {
             members,
         };
         let dest = self.objects().join(&hex);
-        if !dest.join("manifest.json").is_file() {
-            let staging = self.root.join("staging").join(format!("{hex}-{}", uuid::Uuid::new_v4().simple()));
-            std::fs::create_dir_all(&staging).map_err(|e| io_err(e, "Cannot create staging directory", &staging))?;
-            bundle.members.par_iter().zip(&manifest.members).try_for_each(|(m, info)| {
-                let p = staging.join(&info.file);
-                std::fs::write(&p, m.bytes.as_bytes()).map_err(|e| io_err(e, "Cannot write", &p))
-            })?;
+        if dest.join("manifest.json").is_file() {
+            let _ = std::fs::remove_dir_all(&staging);
+        } else {
             let mp = staging.join("manifest.json");
-            std::fs::write(&mp, serde_json::to_vec_pretty(&manifest).unwrap()).map_err(|e| io_err(e, "Cannot write", &mp))?;
+            if let Err(e) = std::fs::write(&mp, serde_json::to_vec_pretty(&manifest).unwrap()) {
+                let _ = std::fs::remove_dir_all(&staging);
+                return Err(io_err(e, "Cannot write", &mp));
+            }
             std::fs::create_dir_all(self.objects()).map_err(|e| io_err(e, "Cannot create", &self.objects()))?;
             if let Err(e) = std::fs::rename(&staging, &dest) {
                 // Another writer may have published identical content first.
@@ -408,16 +432,35 @@ impl Loaded {
             return Err(Error::new(ErrorCode::DataCorrupt, "Artifact member is malformed."));
         }
         // Read little-endian bytes directly into an f64 buffer (no second copy).
+        // The file is read in chunks and each chunk is hashed while the next
+        // one is being read, so verification overlaps the I/O.
         let p = self.dir.join(&info.file);
-        let mut out = vec![0f64; (info.bytes / 8) as usize];
+        let mut out = artpop_core::mem::zeroed_f64((info.bytes / 8) as usize);
         {
             use std::io::Read;
             // SAFETY: f64 has no invalid bit patterns; the byte view covers exactly the buffer.
             let bytes = unsafe { std::slice::from_raw_parts_mut(out.as_mut_ptr() as *mut u8, out.len() * 8) };
             let mut f = std::fs::File::open(&p).map_err(|e| io_err(e, "Cannot read", &p))?;
-            f.read_exact(bytes).map_err(|e| io_err(e, "Cannot read", &p))?;
+            const CHUNK: usize = 8 << 20;
+            let mut hasher = Sha256::new();
+            let mut rest: &mut [u8] = bytes;
+            let mut pending: &[u8] = &[];
+            while !rest.is_empty() {
+                let n = rest.len().min(CHUNK);
+                let (cur, tail) = std::mem::take(&mut rest).split_at_mut(n);
+                let (read, ()) = rayon::join(|| f.read_exact(cur), || hasher.update(pending));
+                read.map_err(|e| io_err(e, "Cannot read", &p))?;
+                pending = cur;
+                rest = tail;
+            }
+            hasher.update(pending);
+            let digest = hasher.finalize();
+            let mut hex = String::with_capacity(64);
+            for b in digest {
+                hex.push_str(&format!("{b:02x}"));
+            }
             let mut extra = [0u8; 1];
-            if f.read(&mut extra).map_err(|e| io_err(e, "Cannot read", &p))? != 0 || sha256_hex(bytes) != info.sha256 {
+            if f.read(&mut extra).map_err(|e| io_err(e, "Cannot read", &p))? != 0 || hex != info.sha256 {
                 return Err(Error::new(ErrorCode::DataCorrupt, format!("Member '{name}' of {} failed its length/digest check.", self.manifest.artifact_id)));
             }
         }

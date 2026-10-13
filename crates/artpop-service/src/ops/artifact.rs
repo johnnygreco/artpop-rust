@@ -1,7 +1,8 @@
 //! Artifact listing, inspection, import, export, and aliasing.
 
-use crate::codec::{image_member, load_population, load_positions, load_source, positions_bundle, read_image};
-use crate::ops::population::{MagFrame, population_column};
+use crate::codec::{LazyPopulation, SourceLoad, image_member, load_positions, load_source_with, positions_bundle, read_image};
+use crate::ops::population::MagFrame;
+use artpop_io::csv::Column;
 use crate::store::{Manifest, Member, Store, sha256_hex};
 use crate::types::{Geometry, Page};
 use crate::{Ctx, OpOutput};
@@ -100,7 +101,7 @@ pub fn import(ctx: &Ctx, req: ImportRequest) -> Result<OpOutput> {
             let y = t.require(req.y_column.as_deref().unwrap_or("y"), "/y_column")?.to_vec();
             let inside: Vec<bool> = x.iter().zip(&y).map(|(a, b)| g.coordinates.inside(*a, *b, g.width, g.height)).collect();
             let n = x.len();
-            let p = Positions { x, y, inside, index: (0..n as u64).collect(), generated: n as u64 };
+            let p = Positions { x, y, inside, index: None, generated: n as u64 };
             let outside = p.outside_count();
             let (meta, members) = positions_bundle(p, &g, json!({ "kind": "imported", "path": path }));
             let r = ctx.put("positions", meta, members, vec![])?;
@@ -205,6 +206,8 @@ pub fn export(ctx: &Ctx, req: ExportRequest) -> Result<OpOutput> {
     let dest = ctx.read_path(&req.destination, "/destination")?;
     let kind = l.manifest.kind.clone();
     let meta = &l.manifest.metadata;
+    // Digest of the bytes written, taken from memory instead of re-reading the file.
+    let mut written_digest: Option<String> = None;
     let written: Value = match req.format {
         ExportFormat::Fits => {
             let member = match kind.as_str() {
@@ -246,104 +249,114 @@ pub fn export(ctx: &Ctx, req: ExportRequest) -> Result<OpOutput> {
                 std::fs::create_dir_all(p).map_err(|e| Error::io(e.to_string()))?;
             }
             let tmp = tmp_path(&dest);
-            artpop_io::fits::write_image(&tmp, &img, &keys, &cards)?;
-            std::fs::rename(&tmp, &dest).map_err(|e| Error::io(format!("Cannot publish {}: {e}", dest.display())))?;
+            let digest = artpop_io::fits::write_image(&tmp, &img, &keys, &cards).inspect_err(|_| {
+                let _ = std::fs::remove_file(&tmp);
+            })?;
+            std::fs::rename(&tmp, &dest).map_err(|e| {
+                let _ = std::fs::remove_file(&tmp);
+                Error::io(format!("Cannot publish {}: {e}", dest.display()))
+            })?;
+            written_digest = Some(digest);
             json!({ "plane": member, "width": img.width, "height": img.height })
         }
         ExportFormat::Csv => {
-            let (names, cols): (Vec<String>, Vec<Vec<Value>>) = match kind.as_str() {
+            let (names, cols): (Vec<String>, Vec<Column<'_>>);
+            let lazy_pop;
+            let source;
+            let positions;
+            let masses;
+            let iso;
+            match kind.as_str() {
                 "population" => {
-                    let p = load_population(ctx, &req.artifact_id, "/artifact_id")?;
-                    let mut names = req.columns.clone();
-                    if names.is_empty() {
-                        names = vec!["star_id".into(), "component".into(), "initial_mass".into(), "current_mass".into()];
-                        names.extend(p.filters.iter().cloned());
+                    lazy_pop = LazyPopulation::load(ctx, &req.artifact_id, "/artifact_id")?;
+                    let mut n = req.columns.clone();
+                    if n.is_empty() {
+                        n = vec!["star_id".into(), "component".into(), "initial_mass".into(), "current_mass".into()];
+                        n.extend(lazy_pop.header.filters.iter().cloned());
                     }
-                    let cols = names.iter().enumerate().map(|(i, n)| population_column(&p, n, req.magnitude_frame, &format!("/columns/{i}"))).collect::<Result<_>>()?;
-                    (names, cols)
+                    cols = n.iter().enumerate().map(|(i, c)| population_export_column(&lazy_pop, c, req.magnitude_frame, &format!("/columns/{i}"))).collect::<Result<_>>()?;
+                    names = n;
                 }
                 "source" => {
-                    let s = load_source(ctx, &req.artifact_id, "/artifact_id")?;
-                    let mut names = req.columns.clone();
-                    if names.is_empty() {
-                        names = vec!["x".into(), "y".into(), "inside".into()];
-                        names.extend(s.bands.iter().cloned());
+                    let mut n = req.columns.clone();
+                    let load = SourceLoad {
+                        bands: if n.is_empty() { None } else { Some(n.clone()) },
+                        component: n.is_empty() || n.iter().any(|c| c == "component"),
+                        star_index: n.iter().any(|c| c == "star_index"),
+                        labels: n.iter().any(|c| c == "label"),
+                    };
+                    source = load_source_with(ctx, &req.artifact_id, "/artifact_id", &load)?;
+                    let s = &source;
+                    if n.is_empty() {
+                        n = vec!["x".into(), "y".into(), "inside".into()];
+                        n.extend(s.bands.iter().cloned());
                     }
-                    let cols = names
+                    cols = n
                         .iter()
                         .enumerate()
-                        .map(|(i, n)| -> Result<Vec<Value>> {
-                            Ok(match n.as_str() {
-                                "x" => s.x.iter().map(|v| json!(v)).collect(),
-                                "y" => s.y.iter().map(|v| json!(v)).collect(),
-                                "inside" => s.inside.iter().map(|v| json!(*v as u8)).collect(),
-                                "component" => s.component.iter().map(|v| json!(v)).collect(),
-                                "star_index" => s.star_index.iter().map(|v| json!(v)).collect(),
+                        .map(|(i, c)| -> Result<Column<'_>> {
+                            Ok(match c.as_str() {
+                                "x" => Column::f64s(&s.x[..]),
+                                "y" => Column::f64s(&s.y[..]),
+                                "inside" => Column::bools(&s.inside[..]),
+                                "component" => Column::u32s(&s.component[..]),
+                                "star_index" => Column::u64s(&s.star_index[..]),
                                 "label" => {
                                     let (lab, v) = s.labels.as_ref().ok_or_else(|| Error::new(ErrorCode::DataMissing, "This source has no labels.").at(&format!("/columns/{i}")))?;
-                                    v.iter().map(|x| crate::codec::label_json(lab, *x)).collect()
+                                    match lab {
+                                        crate::codec::Labels::Numeric { .. } => Column::f64s(&v[..]),
+                                        crate::codec::Labels::Categorical { categories, .. } => Column::Str(v.iter().map(|x| categories.get(*x as usize).cloned().unwrap_or_else(|| "nan".into())).collect()),
+                                    }
                                 }
-                                band => s.mags[s.band_index(band).map_err(|e| e.at(&format!("/columns/{i}")))?].iter().map(|v| json!(v)).collect(),
+                                band => Column::f64s(s.band_column(band, &format!("/columns/{i}"))?),
                             })
                         })
                         .collect::<Result<_>>()?;
-                    (names, cols)
+                    names = n;
                 }
                 "positions" => {
-                    let (p, _) = load_positions(ctx, &req.artifact_id, "/artifact_id")?;
-                    let names = if req.columns.is_empty() { vec!["x".into(), "y".into()] } else { req.columns.clone() };
-                    let cols = names
+                    positions = load_positions(ctx, &req.artifact_id, "/artifact_id")?.0;
+                    let p = &positions;
+                    let n = if req.columns.is_empty() { vec!["x".to_string(), "y".to_string()] } else { req.columns.clone() };
+                    cols = n
                         .iter()
                         .enumerate()
-                        .map(|(i, n)| -> Result<Vec<Value>> {
-                            Ok(match n.as_str() {
-                                "x" => p.x.iter().map(|v| json!(v)).collect(),
-                                "y" => p.y.iter().map(|v| json!(v)).collect(),
-                                "inside" => p.inside.iter().map(|v| json!(*v as u8)).collect(),
-                                "index" => p.index.iter().map(|v| json!(v)).collect(),
+                        .map(|(i, c)| -> Result<Column<'_>> {
+                            Ok(match c.as_str() {
+                                "x" => Column::f64s(&p.x[..]),
+                                "y" => Column::f64s(&p.y[..]),
+                                "inside" => Column::bools(&p.inside[..]),
+                                "index" => Column::u64s(p.index_column()),
                                 other => return Err(Error::invalid(&format!("/columns/{i}"), format!("Unknown positions column '{other}'.")).with_details(json!({ "available": ["x", "y", "inside", "index"] }))),
                             })
                         })
                         .collect::<Result<_>>()?;
-                    (names, cols)
+                    names = n;
                 }
-                "masses" => (vec!["initial_mass".into()], vec![l.f64s("initial_mass")?.iter().map(|v| json!(v)).collect()]),
+                "masses" => {
+                    masses = l.f64s("initial_mass")?;
+                    names = vec!["initial_mass".into()];
+                    cols = vec![Column::f64s(&masses[..])];
+                }
                 "isochrone" => {
-                    let iso = crate::codec::load_isochrone(ctx, &req.artifact_id, "/artifact_id")?;
-                    let names = if req.columns.is_empty() { iso.column_names() } else { req.columns.clone() };
-                    let cols = names.iter().enumerate().map(|(i, n)| iso.column(n).map(|c| c.iter().map(|v| json!(v)).collect()).ok_or_else(|| Error::invalid(&format!("/columns/{i}"), format!("Unknown column '{n}'.")))).collect::<Result<_>>()?;
-                    (names, cols)
+                    iso = crate::codec::load_isochrone(ctx, &req.artifact_id, "/artifact_id")?;
+                    let n = if req.columns.is_empty() { iso.column_names() } else { req.columns.clone() };
+                    cols = n.iter().enumerate().map(|(i, c)| iso.column(c).map(Column::f64s).ok_or_else(|| Error::invalid(&format!("/columns/{i}"), format!("Unknown column '{c}'.")))).collect::<Result<_>>()?;
+                    names = n;
                 }
                 _ => return Err(Error::new(ErrorCode::UnsupportedFormat, format!("{kind} artifacts have no CSV form.")).at("/format")),
-            };
-            let rows = cols.first().map_or(0, |c| c.len());
-            let mut text = String::with_capacity(rows * names.len() * 20 + 64);
-            text.push_str(&names.join(","));
-            text.push('\n');
-            let mut buf = artpop_io::csv::RyuBuffer::new();
-            for r in 0..rows {
-                for (c, col) in cols.iter().enumerate() {
-                    if c > 0 {
-                        text.push(',');
-                    }
-                    match &col[r] {
-                        Value::Number(n) => match n.as_f64() {
-                            Some(f) if n.is_f64() => text.push_str(artpop_io::csv::fmt_f64(f, &mut buf)),
-                            _ => text.push_str(&n.to_string()),
-                        },
-                        Value::String(s) => text.push_str(s),
-                        Value::Bool(b) => text.push_str(if *b { "1" } else { "0" }),
-                        Value::Null => text.push_str("nan"),
-                        other => text.push_str(&other.to_string()),
-                    }
-                }
-                text.push('\n');
             }
-            write_atomic(&dest, text.as_bytes(), req.overwrite)?;
+            let rows = cols.first().map_or(0, |c| c.len());
+            let text = artpop_io::csv::write_columns(&names, &cols);
+            let (written, digest) = rayon::join(|| write_atomic(&dest, text.as_bytes(), req.overwrite), || sha256_hex(text.as_bytes()));
+            written?;
+            written_digest = Some(digest);
             json!({ "rows": rows, "columns": names })
         }
         ExportFormat::Json => {
-            write_atomic(&dest, &serde_json::to_vec_pretty(&l.manifest).unwrap(), req.overwrite)?;
+            let bytes = serde_json::to_vec_pretty(&l.manifest).unwrap();
+            write_atomic(&dest, &bytes, req.overwrite)?;
+            written_digest = Some(sha256_hex(&bytes));
             json!({ "content": "manifest" })
         }
         ExportFormat::Png | ExportFormat::Svg => {
@@ -351,7 +364,9 @@ pub fn export(ctx: &Ctx, req: ExportRequest) -> Result<OpOutput> {
             if !l.has(member) {
                 return Err(Error::new(ErrorCode::UnsupportedFormat, format!("Only {want} artifacts export as {member}; create one with image.preview / plot.render.")).at("/format"));
             }
-            write_atomic(&dest, &l.bytes(member)?, req.overwrite)?;
+            let bytes = l.bytes(member)?;
+            write_atomic(&dest, &bytes, req.overwrite)?;
+            written_digest = Some(sha256_hex(&bytes));
             json!({ "member": member })
         }
         ExportFormat::Bundle => {
@@ -372,7 +387,57 @@ pub fn export(ctx: &Ctx, req: ExportRequest) -> Result<OpOutput> {
         }
     };
     let bytes = file_or_dir_bytes(&dest);
-    Ok(OpOutput::new(json!({ "artifact_id": req.artifact_id, "destination": dest, "format": req.format, "bytes": bytes, "sha256": if dest.is_file() { json!(sha256_hex(&std::fs::read(&dest).unwrap_or_default())) } else { Value::Null }, "details": written })))
+    let sha = match written_digest {
+        Some(d) if dest.is_file() => json!(d),
+        _ if dest.is_file() => json!(sha256_hex(&std::fs::read(&dest).unwrap_or_default())),
+        _ => Value::Null,
+    };
+    Ok(OpOutput::new(json!({ "artifact_id": req.artifact_id, "destination": dest, "format": req.format, "bytes": bytes, "sha256": sha, "details": written })))
+}
+
+/// One population column for CSV export, read on demand. Apparent magnitudes
+/// add each star's component offset exactly as `Population::apparent_mags`.
+fn population_export_column<'a>(p: &'a LazyPopulation, name: &str, frame: MagFrame, pointer: &str) -> Result<Column<'a>> {
+    let h = &p.header;
+    let n = p.len();
+    let l = &p.loaded;
+    Ok(match name {
+        "star_id" => Column::u64s(if l.has("star_id") { l.u64s("star_id")? } else { (0..n as u64).collect::<Vec<u64>>() }),
+        "component" => Column::u32s(p.component()?.unwrap_or_else(|| vec![0; n])),
+        "initial_mass" => Column::f64s(l.f64s("initial_mass")?),
+        "current_mass" | "star_mass" => Column::f64s(l.f64s("current_mass")?),
+        "eep" | "log_L" | "log_Teff" => {
+            let member = if name == "eep" { "eep" } else { name };
+            if !l.has(member) {
+                return Err(Error::new(ErrorCode::DataMissing, format!("This population has no {name} column.")).at(pointer));
+            }
+            Column::f64s(l.f64s(member)?)
+        }
+        "phase" => {
+            let eep = p.eep()?.ok_or_else(|| Error::new(ErrorCode::DataMissing, "Phases need EEP values.").at(pointer))?;
+            Column::Str(eep.iter().map(|e| artpop_core::population::phase_label(*e).to_string()).collect())
+        }
+        band => {
+            let b = h.filter_index(band, pointer)?;
+            let mut col = p.abs_mags(b)?;
+            if frame == MagFrame::Apparent {
+                let offsets: Vec<f64> = h.components.iter().map(|c| c.distance_modulus() + c.extinction[b]).collect();
+                match p.component()? {
+                    Some(comp) => {
+                        for (m, c) in col.iter_mut().zip(&comp) {
+                            *m += offsets[*c as usize];
+                        }
+                    }
+                    None => {
+                        for m in col.iter_mut() {
+                            *m += offsets[0];
+                        }
+                    }
+                }
+            }
+            Column::f64s(col)
+        }
+    })
 }
 
 fn file_or_dir_bytes(p: &Path) -> u64 {

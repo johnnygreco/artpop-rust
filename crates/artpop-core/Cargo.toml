@@ -16,3 +16,7 @@ rustfft = "6.4"
 libm = "0.2"
 rayon = "1.12"
 schemars = "1.2"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Bindings only (madvise for large buffers); no additional native code is built.
+libc = "0.2"

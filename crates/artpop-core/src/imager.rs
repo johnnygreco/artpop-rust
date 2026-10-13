@@ -8,7 +8,9 @@
 
 use crate::error::{Error, ErrorCode, Result};
 use crate::image::Image;
-use crate::rng::{MAX_POISSON_MEAN, Seed, par_blocks};
+use crate::mem;
+use crate::rng::{MAX_POISSON_MEAN, Seed, par_blocks, par_blocks_zip};
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// Planck constant in erg s (CODATA 2018, exact; Astropy 6 default).
@@ -116,14 +118,12 @@ impl Instrument {
             Calibration::Physical { bands, efficiency, .. } => {
                 let b = bands.iter().find(|b| b.name == band).ok_or_else(|| self.missing(band))?;
                 let area = self.area_cm2().unwrap();
-                Ok(mags
-                    .iter()
-                    .map(|m| (b.dlam_angstrom / b.lam_eff_angstrom) * fnu_from_ab(*m) / H_ERG_S * area * exptime * efficiency)
-                    .collect())
+                let (dlam, lam_eff, eff) = (b.dlam_angstrom, b.lam_eff_angstrom, *efficiency);
+                Ok(mem::par_map_f64(mags, |m| (dlam / lam_eff) * fnu_from_ab(m) / H_ERG_S * area * exptime * eff))
             }
             Calibration::Instrumental { zero_points } => {
                 let z = zero_points.iter().find(|z| z.0 == band).ok_or_else(|| self.missing(band))?.1;
-                Ok(mags.iter().map(|m| 10f64.powf(0.4 * (z - m)) * exptime).collect())
+                Ok(mem::par_map_f64(mags, |m| 10f64.powf(0.4 * (z - m)) * exptime))
             }
         }
     }
@@ -154,24 +154,40 @@ impl Instrument {
 /// Validate expected counts: tiny negative FFT residuals are clamped to zero
 /// (relative tolerance 1e-12 of the image maximum); material negatives fail.
 pub fn sanitize_expected(img: &mut Image) -> Result<u64> {
-    let max = img.data.iter().fold(0.0f64, |a, v| a.max(v.abs()));
+    let max = img.data.par_iter().with_min_len(mem::PAR_CHUNK).map(|v| v.abs()).reduce(|| 0.0f64, f64::max);
     let tol = 1e-12 * max.max(f64::MIN_POSITIVE);
-    let mut clamped = 0;
-    for v in &mut img.data {
+    // Fast parallel pass; on any problem, the sequential scan below reports
+    // the first offending pixel exactly as before.
+    let outcome: Vec<Option<u64>> = img
+        .data
+        .par_chunks_mut(mem::PAR_CHUNK)
+        .map(|chunk| {
+            let mut clamped = 0u64;
+            for v in chunk.iter_mut() {
+                if !v.is_finite() || (*v < 0.0 && -*v > tol) {
+                    return None;
+                }
+                if *v < 0.0 {
+                    *v = 0.0;
+                    clamped += 1;
+                }
+            }
+            Some(clamped)
+        })
+        .collect();
+    if let Some(total) = outcome.iter().try_fold(0u64, |acc, c| c.map(|v| acc + v)) {
+        return Ok(total);
+    }
+    for v in &img.data {
         if !v.is_finite() {
             return Err(Error::nonfinite("/source", "Expected counts contain a non-finite value."));
         }
-        if *v < 0.0 {
-            if -*v <= tol {
-                *v = 0.0;
-                clamped += 1;
-            } else {
-                return Err(Error::new(ErrorCode::OutOfDomain, "Expected counts are materially negative; use a nonnegative PSF for physical observations.")
-                    .with_details(serde_json::json!({ "value": *v, "tolerance": tol })));
-            }
+        if *v < 0.0 && -*v > tol {
+            return Err(Error::new(ErrorCode::OutOfDomain, "Expected counts are materially negative; use a nonnegative PSF for physical observations.")
+                .with_details(serde_json::json!({ "value": *v, "tolerance": tol })));
         }
     }
-    Ok(clamped)
+    Err(Error::internal("Expected-count sanitization disagreed with its own scan."))
 }
 
 /// Poisson realization of `expected + sky` plus Gaussian read noise, drawn
@@ -179,14 +195,14 @@ pub fn sanitize_expected(img: &mut Image) -> Result<u64> {
 /// `observe.read_noise/<band>` (deterministic for any thread count).
 pub fn realize_counts(expected: &Image, sky: f64, read_noise: f64, seed: Seed, band: &str) -> Result<Image> {
     crate::error::require_nonnegative(sky, "/sky_sb_mag_arcsec2", "Sky counts")?;
-    let mut out: Vec<f64> = expected.data.iter().map(|e| e + sky).collect();
-    if let Some(lam) = out.iter().find(|l| **l > MAX_POISSON_MEAN) {
+    if let Some(i) = expected.data.par_iter().with_min_len(mem::PAR_CHUNK).position_first(|e| e + sky > MAX_POISSON_MEAN) {
         return Err(Error::new(ErrorCode::ResourceLimit, "Expected counts exceed the Poisson sampler's supported range.")
-            .with_details(serde_json::json!({ "mean": lam, "maximum": MAX_POISSON_MEAN })));
+            .with_details(serde_json::json!({ "mean": expected.data[i] + sky, "maximum": MAX_POISSON_MEAN })));
     }
-    par_blocks(seed, "observe.shot_noise", &[band], &mut out, |st, chunk| {
-        for v in chunk.iter_mut() {
-            *v = st.poisson(*v) as f64;
+    let mut out = mem::zeroed_f64(expected.data.len());
+    par_blocks_zip(seed, "observe.shot_noise", &[band], &mut out, &expected.data, |st, chunk, e| {
+        for (v, ev) in chunk.iter_mut().zip(e) {
+            *v = st.poisson(ev + sky) as f64;
         }
     });
     if read_noise > 0.0 {

@@ -316,8 +316,7 @@ pub fn mist_isochrone(ctx: &Ctx, req: &MistRequest) -> Result<Isochrone> {
         let manifest = data::load_manifest(ctx, &req.data_dir, req.rotation, &system, &p)?;
         ctx.note_data(manifest.manifest_id.clone());
         let read_block = |feh: f64| -> Result<(mist::Header, mist::Block)> {
-            let text = data::read_verified(&manifest, &mist::file_name(feh, req.rotation, &system))?;
-            let (h, _ages, b) = mist::read_nearest_block(&text, nominal_age)?;
+            let (h, _ages, b) = data::read_verified_parse(&manifest, &mist::file_name(feh, req.rotation, &system), |text| mist::read_nearest_block(text, nominal_age))?;
             if (h.v_vcrit - req.rotation).abs() > 1e-9 {
                 return Err(Error::new(ErrorCode::ModelAlignment, "MIST file rotation differs from the request."));
             }

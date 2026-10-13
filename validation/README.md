@@ -16,7 +16,7 @@ A test without `--rust-bin` is skipped, and `--require-rust` turns a missing bin
 | [`harness.py`](harness.py) + [`test_e2e.py`](test_e2e.py) | Five end-to-end workflows run by both backends on shared inputs (CSV catalog, isochrone, weights), plus four comparator self-tests that must reject deliberately corrupted outputs. |
 | [`test_extended_parity.py`](test_extended_parity.py) | 27 checks of deterministic functions value-by-value and samplers statistically (see below). |
 | [`benchmark.py`](benchmark.py) | Fresh-process timing of the five workflows at 100,000 stars, recording RSS and system load per sample. |
-| [`scale_cases.py`](scale_cases.py) + [`scale_benchmark.py`](scale_benchmark.py) | Larger equivalent workflows (1M-star SSP, 1M-star Sérsic ideal image, 2047² detector image, 10M-star histogram, MIST mass-normalized cutoff population) with statistical cross-checks. |
+| [`scale_cases.py`](scale_cases.py) + [`scale_benchmark.py`](scale_benchmark.py) | Larger equivalent workflows (1M-star SSP, 1M-star Sérsic ideal image, 2047² detector image, 10M-star histogram, MIST mass-normalized cutoff population, and a fully sampled 1e7 Msun MIST population of about 23 million stars) with statistical cross-checks. |
 
 The five workflows:
 
@@ -58,3 +58,5 @@ Results from 2026-10-12 are in [docs/evidence/](../docs/evidence/): [`e2e-rust-p
 `RustCli` in [`harness.py`](harness.py) runs `artpop-rust invoke OPERATION --input request.json --output-dir artifacts` and requires a single `status="completed"` envelope with exactly one artifact of the expected kind. Request files and raw stdout/stderr are kept for every call. Numeric comparisons always use exported FITS/CSV products. The adapter never falls back to Python.
 
 Statistical thresholds are fixed in advance and conservative (p > 1e-8 for single tests, 6σ for scale realizations). Stochastic outputs are never compared sample-by-sample, because rust-v1 deliberately uses its own random streams.
+
+The `mist_full_1e7` scale case is the compute-bound reference: without a magnitude cutoff ArtPop draws about 2.3e7 stars in mass batches and interpolates nine columns for each, which takes it about 20 s on the analysis VM, so the comparison measures NumPy/SciPy work rather than interpreter start-up. Both backends overshoot the target mass by up to one whole batch (5%), so its check compares the mean flux per star against the realization scatter predicted from the MIST isochrone's flux moments (about 0.4% in g and 0.6% in i at that size) rather than total magnitudes.

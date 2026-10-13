@@ -1,6 +1,6 @@
 //! Ideal and artificial observations.
 
-use crate::codec::{image_member_owned, load_source, read_image};
+use crate::codec::{SourceLoad, image_member_owned, load_source_with, read_image};
 use crate::ops::image::{SmoothUnits, load_psf, render_smooth};
 use crate::ops::imager::InstrumentSpec;
 use crate::ops::source::source_mask;
@@ -96,10 +96,11 @@ fn render(
     boundary: Boundary,
     method: Method,
 ) -> Result<Rendered> {
+    use rayon::prelude::*;
     let mut timings = Timings::start();
     let sel = source_mask(ctx, s, selection, "/selection")?;
-    let mask: Vec<bool> = (0..s.len()).map(|i| s.inside[i] && sel.as_ref().is_none_or(|m| m[i])).collect();
-    let marked_outside = (0..s.len()).filter(|i| !s.inside[*i] && sel.as_ref().is_none_or(|m| m[*i])).count();
+    let mask: Vec<bool> = (0..s.len()).into_par_iter().with_min_len(1 << 15).map(|i| s.inside[i] && sel.as_ref().is_none_or(|m| m[i])).collect();
+    let marked_outside = (0..s.len()).into_par_iter().with_min_len(1 << 15).filter(|i| !s.inside[*i] && sel.as_ref().is_none_or(|m| m[*i])).count();
     let conv = convention.unwrap_or(s.geometry.coordinates);
     let (mut img, st) = deposit(conv, s.geometry.width, s.geometry.height, &s.x, &s.y, Some(weights), Some(&mask), InvalidPolicy::Error)?;
     let mut stats = serde_json::to_value(&st).unwrap();
@@ -129,10 +130,10 @@ fn render(
 
 pub fn ideal(ctx: &Ctx, req: IdealRequest) -> Result<OpOutput> {
     let t0 = std::time::Instant::now();
-    let s = load_source(ctx, &req.source.artifact_id, "/source/artifact_id")?;
+    let s = load_source_with(ctx, &req.source.artifact_id, "/source/artifact_id", &SourceLoad::for_render(&req.bandpass, &req.selection))?;
     let load_ms = t0.elapsed().as_secs_f64() * 1000.0;
-    let b = s.band_index(&req.bandpass)?;
-    let flux: Vec<f64> = s.mags[b].iter().map(|m| 10f64.powf(0.4 * (req.output_zpt - m))).collect();
+    let zpt = req.output_zpt;
+    let flux = artpop_core::mem::par_map_f64(s.band_column(&req.bandpass, "/bandpass")?, |m| 10f64.powf(0.4 * (zpt - m)));
     let units = SmoothUnits::Flux { zpt: req.output_zpt };
     let r = render(ctx, &s, &req.source.artifact_id, &flux, &req.selection, req.histogram_convention, req.include_smooth.then_some(&units), &req.bandpass, &req.psf, req.boundary, req.convolution_method)?;
     let unit = format!("flux (zpt={})", req.output_zpt);
@@ -194,16 +195,16 @@ pub struct ArtificialRequest {
 
 pub fn artificial(ctx: &Ctx, req: ArtificialRequest) -> Result<OpOutput> {
     let t0 = std::time::Instant::now();
-    let s = load_source(ctx, &req.source.artifact_id, "/source/artifact_id")?;
+    let s = load_source_with(ctx, &req.source.artifact_id, "/source/artifact_id", &SourceLoad::for_render(&req.bandpass, &req.selection))?;
     let load_ms = t0.elapsed().as_secs_f64() * 1000.0;
-    let b = s.band_index(&req.bandpass)?;
+    let band_mags = s.band_column(&req.bandpass, "/bandpass")?;
     let inst = req.instrument.build(ctx, "/instrument")?;
     if !inst.magnitude_system.eq_ignore_ascii_case(&s.magnitude_system) && s.magnitude_system != "unspecified" {
         return Err(Error::new(artpop_core::ErrorCode::UnitMismatch, format!("Source magnitudes are {} but the instrument expects {}.", s.magnitude_system, inst.magnitude_system)).at("/instrument/magnitude_system"));
     }
     artpop_core::error::require_positive(req.exposure_s, "/exposure_s", "Exposure time")?;
     let seed = ctx.seed()?;
-    let counts = inst.mag_to_counts(&s.mags[b], &req.bandpass, req.exposure_s)?;
+    let counts = inst.mag_to_counts(band_mags, &req.bandpass, req.exposure_s)?;
     let units = SmoothUnits::Counts { instrument: &inst, exposure_s: req.exposure_s, zpt: req.output_zpt };
     let r = render(ctx, &s, &req.source.artifact_id, &counts, &req.selection, req.histogram_convention, req.include_smooth.then_some(&units), &req.bandpass, &req.psf, req.boundary, req.convolution_method)?;
     let mut expected = r.image;
@@ -218,8 +219,7 @@ pub fn artificial(ctx: &Ctx, req: ArtificialRequest) -> Result<OpOutput> {
     timings.lap("noise");
     let cal = inst.calibration_factor(&req.bandpass, req.exposure_s, req.output_zpt)?;
     let rn2 = inst.read_noise * inst.read_noise;
-    use rayon::prelude::*;
-    let plane = |src: &Image, f: &(dyn Fn(f64) -> f64 + Sync)| Image { width: src.width, height: src.height, data: src.data.par_iter().map(|v| f(*v)).collect() };
+    let plane = |src: &Image, f: &(dyn Fn(f64) -> f64 + Sync)| Image { width: src.width, height: src.height, data: artpop_core::mem::par_map_f64(&src.data, f) };
     let image = plane(&raw, &|v| (v - sky) * cal);
     let var_counts = plane(&expected, &|v| v + sky + rn2);
     let var_cal = plane(&var_counts, &|v| v * cal * cal);

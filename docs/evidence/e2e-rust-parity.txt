@@ -1,43 +1,3 @@
-....................................                                     [100%]
-=============================== warnings summary ===============================
-validation/test_extended_parity.py::test_filters_zero_points_and_curves
-  /home/ubuntu/one-offs/ArtPop/src/artpop/filters.py:96: DeprecationWarning: `trapz` is deprecated. Use `trapezoid` instead, or one of the numerical integration functions in `scipy.integrate`.
-    log_leff = np.trapz(np.log(lam) * trans, np.log(lam))
-
-validation/test_extended_parity.py::test_filters_zero_points_and_curves
-  /home/ubuntu/one-offs/ArtPop/src/artpop/filters.py:97: DeprecationWarning: `trapz` is deprecated. Use `trapezoid` instead, or one of the numerical integration functions in `scipy.integrate`.
-    log_leff /= np.trapz(trans, np.log(lam))
-
-validation/test_extended_parity.py::test_filters_zero_points_and_curves
-  /home/ubuntu/one-offs/ArtPop/src/artpop/filters.py:116: DeprecationWarning: `trapz` is deprecated. Use `trapezoid` instead, or one of the numerical integration functions in `scipy.integrate`.
-    lpivot = np.trapz(lam * trans, lam)
-
-validation/test_extended_parity.py::test_filters_zero_points_and_curves
-  /home/ubuntu/one-offs/ArtPop/src/artpop/filters.py:117: DeprecationWarning: `trapz` is deprecated. Use `trapezoid` instead, or one of the numerical integration functions in `scipy.integrate`.
-    lpivot /= np.trapz(trans, np.log(lam))
-
-validation/test_extended_parity.py::test_filters_zero_points_and_curves
-  /home/ubuntu/one-offs/ArtPop/src/artpop/filters.py:136: DeprecationWarning: `trapz` is deprecated. Use `trapezoid` instead, or one of the numerical integration functions in `scipy.integrate`.
-    norm = np.trapz(trans, lam)
-
-validation/test_extended_parity.py::test_filters_zero_points_and_curves
-  /home/ubuntu/one-offs/ArtPop/src/artpop/filters.py:78: DeprecationWarning: `trapz` is deprecated. Use `trapezoid` instead, or one of the numerical integration functions in `scipy.integrate`.
-    theff = np.trapz(trans, np.log(lam))
-
-validation/test_extended_parity.py::test_mist_selection_matches_upstream
-validation/test_extended_parity.py::test_mist_selection_matches_upstream
-validation/test_extended_parity.py::test_mist_selection_matches_upstream
-  /home/ubuntu/one-offs/ArtPop/src/artpop/stars/isochrones.py:742: DeprecationWarning: numpy.core is deprecated and has been renamed to numpy._core. The numpy._core namespace contains private NumPy internals and its use is discouraged, as NumPy internals can change without warning in any release. In practice, most real-world usage of numpy.core is to access functionality in the public NumPy API. If that is the case, use the public NumPy API. If not, you are using NumPy internals. If you would still like to access an internal attribute, use numpy._core.records.
-    iso = np.core.records.fromarrays(y.transpose(), dtype=mist_0.dtype)
-
--- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-==================================== PASSES ====================================
-______________ test_spatial_samplers_match_upstream_distributions ______________
------------------------------ Captured stderr call -----------------------------
-WARNING: 84 stars outside the image
------------------------------- Captured log call -------------------------------
-WARNING  ArtPop Logger:sample.py:272 84 stars outside the image
-=========================== short test summary info ============================
 PASSED validation/test_e2e.py::test_python_reference_e2e[histogram]
 PASSED validation/test_e2e.py::test_python_reference_e2e[ideal]
 PASSED validation/test_e2e.py::test_python_reference_e2e[detector]
@@ -74,4 +34,4 @@ PASSED validation/test_extended_parity.py::test_sample_fraction_and_surface_dens
 PASSED validation/test_extended_parity.py::test_mist_selection_matches_upstream
 PASSED validation/test_extended_parity.py::test_spatial_samplers_match_upstream_distributions
 PASSED validation/test_extended_parity.py::test_magnitude_limited_population_photometry
-36 passed, 9 warnings in 16.56s
+36 passed, 9 warnings in 16.59s

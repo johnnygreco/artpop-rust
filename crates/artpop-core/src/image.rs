@@ -1,6 +1,7 @@
 //! Row-major f64 images and weighted stellar histograms.
 
 use crate::error::{Error, ErrorCode, Result};
+use crate::mem;
 use crate::spatial::Coordinates;
 use serde::{Deserialize, Serialize};
 
@@ -14,7 +15,7 @@ pub struct Image {
 
 impl Image {
     pub fn zeros(width: usize, height: usize) -> Image {
-        Image { width, height, data: vec![0.0; width * height] }
+        Image { width, height, data: mem::zeroed_f64(width * height) }
     }
 
     pub fn new(width: usize, height: usize, data: Vec<f64>) -> Result<Image> {
@@ -43,6 +44,10 @@ impl Image {
     }
 }
 
+/// Pairwise summation (leaves of at most 128 sequential additions, split at
+/// the midpoint). Halves above [`PAIRWISE_PAR_MIN`] elements are summed on
+/// separate threads; the addition tree, and therefore every bit of the
+/// result, is identical to the sequential evaluation.
 pub fn pairwise_sum(v: &[f64]) -> f64 {
     if v.len() <= 128 {
         let mut s = 0.0;
@@ -52,7 +57,31 @@ pub fn pairwise_sum(v: &[f64]) -> f64 {
         s
     } else {
         let m = v.len() / 2;
-        pairwise_sum(&v[..m]) + pairwise_sum(&v[m..])
+        if v.len() >= PAIRWISE_PAR_MIN {
+            let (a, b) = rayon::join(|| pairwise_sum(&v[..m]), || pairwise_sum(&v[m..]));
+            a + b
+        } else {
+            pairwise_sum(&v[..m]) + pairwise_sum(&v[m..])
+        }
+    }
+}
+
+/// Smallest slice length whose two halves are summed concurrently.
+pub const PAIRWISE_PAR_MIN: usize = 1 << 17;
+
+/// Raw pointer that may be shared across threads; callers guarantee that
+/// concurrent writes never alias (disjoint index windows).
+struct SyncPtr<T>(*mut T);
+
+unsafe impl<T> Sync for SyncPtr<T> {}
+unsafe impl<T> Send for SyncPtr<T> {}
+
+impl<T> SyncPtr<T> {
+    /// # Safety
+    /// `i` must be in bounds and no other thread may write index `i`.
+    #[inline]
+    unsafe fn write(&self, i: usize, v: T) {
+        unsafe { self.0.add(i).write(v) }
     }
 }
 
@@ -188,7 +217,8 @@ pub fn deposit(
     }
     const BLOCK: usize = 1 << 16;
     let binner = Binner::new(convention, width, height);
-    let mut cells = vec![NONE; n];
+    let mut cells: Vec<u32> = mem::with_capacity(n);
+    cells.resize(n, NONE);
     let partials: Vec<Partial> = cells
         .par_chunks_mut(BLOCK)
         .enumerate()
@@ -250,32 +280,73 @@ pub fn deposit(
         }
         return Ok((img, st));
     }
-    // Stable counting sort of stars into row tiles of about 256 KiB.
+    // Stable counting sort of stars into row tiles of about 256 KiB. Every
+    // classification block counts its stars per tile, prefix sums give each
+    // (tile, block) pair its own window, and blocks scatter their stars (tile-
+    // local pixel index and weight) into those windows in parallel. Within a
+    // tile the order is block order then input order, i.e. input order, so the
+    // accumulation below adds exactly what a serial loop would add, in the
+    // same order, while reading the sorted arrays sequentially.
     let tile_rows = (32_768 / width).max(1);
     let tile_len = tile_rows * width;
     let tiles = height.div_ceil(tile_rows);
+    let blocks = n.div_ceil(BLOCK);
+    let mut counts = vec![0u32; blocks * tiles];
+    counts.par_chunks_mut(tiles).zip(cells.par_chunks(BLOCK)).for_each(|(cnt, chunk)| {
+        for c in chunk {
+            if *c < INVALID {
+                cnt[*c as usize / tile_len] += 1;
+            }
+        }
+    });
     let mut starts = vec![0usize; tiles + 1];
-    for c in &cells {
-        if *c < INVALID {
-            starts[*c as usize / tile_len + 1] += 1;
-        }
-    }
+    let mut offsets = vec![0usize; blocks * tiles];
     for t in 0..tiles {
-        starts[t + 1] += starts[t];
-    }
-    let mut fill = starts.clone();
-    let mut order = vec![0u32; st.deposited as usize];
-    for (i, c) in cells.iter().enumerate() {
-        if *c < INVALID {
-            let t = *c as usize / tile_len;
-            order[fill[t]] = i as u32;
-            fill[t] += 1;
+        let mut o = starts[t];
+        for b in 0..blocks {
+            offsets[b * tiles + t] = o;
+            o += counts[b * tiles + t] as usize;
         }
+        starts[t + 1] = o;
+    }
+    let total = starts[tiles];
+    let mut sorted_cells: Vec<u32> = mem::zeroed_u32(total);
+    let mut sorted_weights: Option<Vec<f64>> = weights.map(|_| mem::zeroed_f64(total));
+    {
+        let sc = SyncPtr(sorted_cells.as_mut_ptr());
+        let sw = sorted_weights.as_mut().map(|v| SyncPtr(v.as_mut_ptr()));
+        cells.par_chunks(BLOCK).enumerate().for_each(|(b, chunk)| {
+            let mut fill: Vec<usize> = offsets[b * tiles..(b + 1) * tiles].to_vec();
+            for (k, c) in chunk.iter().enumerate() {
+                if *c < INVALID {
+                    let t = *c as usize / tile_len;
+                    let pos = fill[t];
+                    fill[t] += 1;
+                    // SAFETY: `pos` lies in the window reserved for (block b, tile t);
+                    // windows partition `0..total`, so no two threads write one slot.
+                    unsafe {
+                        sc.write(pos, *c - (t * tile_len) as u32);
+                        if let Some(p) = &sw {
+                            p.write(pos, w_of(b * BLOCK + k));
+                        }
+                    }
+                }
+            }
+        });
     }
     img.data.par_chunks_mut(tile_len).enumerate().for_each(|(t, tile)| {
-        let base = t * tile_len;
-        for &i in &order[starts[t]..starts[t + 1]] {
-            tile[cells[i as usize] as usize - base] += w_of(i as usize);
+        let range = starts[t]..starts[t + 1];
+        match &sorted_weights {
+            Some(w) => {
+                for (c, wv) in sorted_cells[range.clone()].iter().zip(&w[range]) {
+                    tile[*c as usize] += wv;
+                }
+            }
+            None => {
+                for c in &sorted_cells[range] {
+                    tile[*c as usize] += 1.0;
+                }
+            }
         }
     });
     Ok((img, st))
@@ -344,6 +415,21 @@ mod tests {
             }
             assert!(img.data.iter().zip(&serial).all(|(a, b)| a.to_bits() == b.to_bits()), "{conv:?}");
         }
+    }
+
+    #[test]
+    fn parallel_pairwise_sum_is_bitwise_sequential() {
+        fn sequential(v: &[f64]) -> f64 {
+            if v.len() <= 128 {
+                v.iter().fold(0.0, |s, x| s + x)
+            } else {
+                let m = v.len() / 2;
+                sequential(&v[..m]) + sequential(&v[m..])
+            }
+        }
+        let mut st = crate::rng::Seed(2).stream("sum", &[]);
+        let v: Vec<f64> = (0..(3 << 17) + 777).map(|_| 10f64.powf(st.uniform_range(-8.0, 8.0))).collect();
+        assert_eq!(pairwise_sum(&v).to_bits(), sequential(&v).to_bits());
     }
 
     #[test]

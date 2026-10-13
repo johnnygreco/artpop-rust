@@ -8,9 +8,9 @@ The Rust port specified in [RUST_PORT_SPEC.md](RUST_PORT_SPEC.md) and [CLI_MCP_C
 
 | Crate | Lines | Responsibility |
 | --- | ---: | --- |
-| `crates/artpop-core` | ~5,100 | IMFs, interpolation (SciPy `interp1d` kinds), isochrones, populations and unresolved moments, MIST/PARSEC parsing, spatial models and categorical samplers, weighted histograms, PSFs, convolution, detector model, special functions, RNG streams. No I/O, CLI, or MCP. |
-| `crates/artpop-io` | ~600 | CSV tables, FITS through vendored CFITSIO (`fitsio` crate), PNG previews and RGB composites, SVG plots. |
-| `crates/artpop-service` | ~7,600 | Typed request schemas (generated JSON Schema), operation registry, executor, result envelopes, content-addressed artifact store, dataset manifests, jobs. |
+| `crates/artpop-core` | ~5,500 | IMFs, interpolation (SciPy `interp1d` kinds), isochrones, populations and unresolved moments, MIST/PARSEC parsing, spatial models and categorical samplers, weighted histograms, PSFs, convolution, detector model, special functions, RNG streams, large-buffer allocation helpers. No I/O, CLI, or MCP. |
+| `crates/artpop-io` | ~900 | CSV tables (chunk-parallel parse, typed writer), FITS (native 64-bit image encoder with CFITSIO's exact header layout; reading through vendored CFITSIO, `fitsio` crate), PNG previews and RGB composites, SVG plots. |
+| `crates/artpop-service` | ~8,000 | Typed request schemas (generated JSON Schema), operation registry, executor, result envelopes, content-addressed artifact store (members hashed and written in one parallel pass, reads verified while streaming), lazy column loading, dataset manifests, jobs. |
 | `crates/artpop-mcp` | ~200 | MCP server on the official `rmcp` 3.5 SDK (stdio). |
 | `crates/artpop-cli` | ~400 | `artpop-rust` binary: `invoke`, domain commands, `batch`, `mcp serve`, `worker run-job`. |
 
@@ -18,14 +18,14 @@ Bundled metadata (164 filters, 12 systems, MIST zero points) is converted from A
 
 ### Building
 
-Requirements: Rust 1.99 (pinned by `rust-toolchain.toml`), a C and C++ compiler, and CMake ≥ 3.5 with Make or Ninja. CFITSIO 3.x (with its bundled zlib) is compiled from the source vendored in `fitsio-sys` and linked statically; no system CFITSIO is needed. TLS for `data.fetch` uses rustls with the ring provider and bundled webpki roots.
+Requirements: Rust 1.99 (pinned by `rust-toolchain.toml`), a C and C++ compiler, and CMake ≥ 3.5 with Make or Ninja. CFITSIO 3.x (with its bundled zlib) is compiled from the source vendored in `fitsio-sys` and linked statically; no system CFITSIO is needed. TLS for `data.fetch` uses rustls with the ring provider and bundled webpki roots. On Linux the core crate also depends on the `libc` bindings crate (no additional native code) to advise transparent huge pages for buffers above 4 MiB; elsewhere that call is a no-op.
 
 ```bash
 cargo build --release          # target/release/artpop-rust (~17 MB, Linux x86_64)
-cargo test --workspace         # 85 tests: core, io, service integration, CLI/MCP
+cargo test --workspace         # 94 tests: core, io, service integration, CLI/MCP
 ```
 
-Only Linux x86_64 has been built and tested.
+Only Linux x86_64 has been built and tested. The release profile uses thin LTO; `cargo test` in the default (debug) profile is slower but exercises the same code.
 
 ## Operations and tests
 
@@ -134,10 +134,10 @@ Each corrected behavior has a regression test with an independent expected answe
 ## Known limitations
 
 - MCP: stdio transport only (Streamable HTTP is not implemented). MCP progress notifications and per-request cancellation are not wired to operations; the `job.*` operations are the portable mechanism for long work. Protocol revisions 2024-11-05, 2025-03-26, 2025-06-18, 2025-11-25 (`initialize`) and 2026-07-28 (`server/discover`) are negotiated by the SDK; tests cover four of them.
-- Jobs run one per detached worker process. Cancellation is cooperative (marker file, worker exits without publishing); there are no checkpoints, so interrupted jobs are reported `interrupted` and must be resubmitted. There is no queue or concurrency limit.
+- Jobs run one per detached worker process. Cancellation is cooperative (marker file, worker exits without publishing); there are no checkpoints, so interrupted jobs are reported `interrupted` and must be resubmitted. There is no queue or concurrency limit. The submitter records the worker PID in a separate `worker.pid` file: writing it into `state.json` after the spawn raced with a fast-starting worker's own `running` write and could leave a running job reported as `queued` (found by the worker-kill test under release-build timing; fixed).
 - Limits: star counts, grid cells, image pixels, page sizes, and inline sizes are enforced. `execution.max_memory_bytes` is validated and recorded but not enforced as an allocator budget, and request deadlines are not implemented.
 - Data: only the MIST v1.2 LSST rotation-0.4 grid has been exercised with real files. It was fetched live from mist.science with `data.fetch` (85,410,956-byte archive, 15 files byte-identical to the analysis download; [evidence](evidence/data-fetch-lsst.json)), and its archive SHA-256 is now pinned. Other grids are fetched unpinned with an `UNPINNED_CHECKSUM` warning unless `expected_sha256` is supplied.
 - Interpolation accepts nondecreasing initial masses with `numpy.interp` semantics for linear kinds; spline kinds require strictly increasing x. There is no separate duplicate-handling option.
 - Previews use polynomial approximations of viridis/magma/inferno; `plot.render` produces plain SVG without ArtPop's `mpl_style`/`jpg_style` settings.
-- FITS support covers 2D image HDUs (any CFITSIO-readable pixel type, scaled to f64). WCS is copied, never interpreted; tables and compressed images are untested.
+- FITS support covers 2D image HDUs (any CFITSIO-readable pixel type, scaled to f64). Images are written by a native encoder whose bytes are tested to be identical to CFITSIO's output (header layout, `%.15G` value formatting, padding); reading still goes through CFITSIO. WCS is copied, never interpreted; tables and compressed images are untested.
 - Arrow/Parquet export is not implemented (CSV, FITS, JSON, PNG, SVG, and portable bundles are).

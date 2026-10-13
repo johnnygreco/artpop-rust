@@ -104,15 +104,30 @@ pub fn load_manifest(ctx: &Ctx, data_dir_override: &Option<String>, rotation: f6
 
 /// Read one registered file, verifying size and digest.
 pub fn read_verified(m: &DatasetManifest, name: &str) -> Result<String> {
+    read_verified_parse(m, name, |text| Ok(text.to_string()))
+}
+
+/// Read one registered file and parse it, verifying size and digest. The
+/// digest is computed concurrently with `parse`; nothing parsed from a file
+/// that fails verification is ever returned.
+pub fn read_verified_parse<T: Send>(m: &DatasetManifest, name: &str, parse: impl FnOnce(&str) -> Result<T> + Send) -> Result<T> {
     let entry = m.files.iter().find(|f| f.name == name).ok_or_else(|| {
         Error::new(ErrorCode::DataMissing, format!("{name} is not part of dataset {}.", m.dataset_id)).with_details(json!({ "available": m.files.iter().map(|f| &f.name).collect::<Vec<_>>() }))
     })?;
     let p = m.root.join(name);
     let bytes = std::fs::read(&p).map_err(|e| Error::new(ErrorCode::DataMissing, format!("Cannot read {}: {e}", p.display())))?;
-    if bytes.len() as u64 != entry.bytes || sha256_hex(&bytes) != entry.sha256 {
-        return Err(Error::new(ErrorCode::DataCorrupt, format!("{} does not match its registered size/digest; re-run data.verify or data.import.", p.display())));
+    let corrupt = || Error::new(ErrorCode::DataCorrupt, format!("{} does not match its registered size/digest; re-run data.verify or data.import.", p.display()));
+    if bytes.len() as u64 != entry.bytes {
+        return Err(corrupt());
     }
-    String::from_utf8(bytes).map_err(|_| Error::new(ErrorCode::DataCorrupt, format!("{} is not UTF-8 text.", p.display())))
+    let (verified, parsed) = rayon::join(
+        || sha256_hex(&bytes) == entry.sha256,
+        || std::str::from_utf8(&bytes).map_err(|_| Error::new(ErrorCode::DataCorrupt, format!("{} is not UTF-8 text.", p.display()))).and_then(parse),
+    );
+    if !verified {
+        return Err(corrupt());
+    }
+    parsed
 }
 
 fn parse_dir_name(name: &str) -> Option<(f64, String)> {
